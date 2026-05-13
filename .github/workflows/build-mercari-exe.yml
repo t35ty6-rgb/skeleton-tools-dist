@@ -1,0 +1,78 @@
+name: Build Mercari Setup .exe
+
+on:
+  push:
+    paths:
+      - "mercari-pricer/**"
+      - ".github/workflows/build-mercari-exe.yml"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag (e.g. v5.1.0). 空でビルドのみ"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        shell: pwsh
+        working-directory: mercari-pricer
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build .exe
+        shell: pwsh
+        working-directory: mercari-pricer
+        run: |
+          pyinstaller --noconfirm --onefile --windowed `
+            --name "mercari-auto-pricer-setup" `
+            --hidden-import price_update_bundled `
+            --hidden-import common `
+            --add-data "price_update_bundled.py;." `
+            --add-data "common.py;." `
+            setup_wizard.py
+          dir dist
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mercari-auto-pricer-setup-exe
+          path: mercari-pricer/dist/mercari-auto-pricer-setup.exe
+          if-no-files-found: error
+
+      - name: Determine release tag
+        if: github.event.inputs.release_tag != ''
+        id: tag
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.inputs.release_tag }}"
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Upload to GitHub Release
+        if: github.event.inputs.release_tag != ''
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ steps.tag.outputs.tag }}"
+          # Release が無ければ作る
+          gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --title "メルカリ自動値下げ $tag" --notes "ワンクリックセットアップ版 (.exe)"
+          }
+          gh release upload $tag mercari-pricer/dist/mercari-auto-pricer-setup.exe --repo $env:GITHUB_REPOSITORY --clobber
