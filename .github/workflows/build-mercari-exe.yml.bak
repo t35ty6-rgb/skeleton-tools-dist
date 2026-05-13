@@ -43,14 +43,6 @@ jobs:
             --name "mercari-auto-pricer-setup" `
             --hidden-import price_update_bundled `
             --hidden-import common `
-            --collect-submodules selenium `
-            --collect-data selenium `
-            --hidden-import selenium.webdriver.chrome.options `
-            --hidden-import selenium.webdriver.chrome.service `
-            --hidden-import selenium.webdriver.chrome.webdriver `
-            --hidden-import selenium.webdriver.common.by `
-            --hidden-import selenium.webdriver.support.ui `
-            --hidden-import selenium.webdriver.support.expected_conditions `
             --add-data "price_update_bundled.py;." `
             --add-data "common.py;." `
             setup_wizard.py
