@@ -1,0 +1,3347 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>セットアップウィザード｜ホットペッパー予約通知ツール</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ==== レイアウト ==== */
+.app {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+@media (max-width: 800px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { position: sticky; top: 0; z-index: 10; }
+}
+
+/* ==== サイドバー ==== */
+.sidebar {
+  background: linear-gradient(180deg, #c44569 0%, #6c3483 100%);
+  color: white;
+  padding: 24px 20px;
+}
+.sidebar h1 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+.sidebar .sub {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-bottom: 24px;
+}
+.progress {
+  background: rgba(255,255,255,0.15);
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ffd54f, #ff8a65);
+  transition: width 0.3s;
+}
+.steps {
+  list-style: none;
+}
+.steps li {
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.steps li:hover { background: rgba(255,255,255,0.1); }
+.steps li.active {
+  background: rgba(255,255,255,0.25);
+  font-weight: bold;
+}
+.steps li.done { opacity: 0.7; }
+.steps li.done::before { content: '✓'; color: #80ff80; font-weight: bold; }
+.steps li:not(.done)::before { content: counter(s); }
+.steps { counter-reset: s; }
+.steps li:not(.done) { counter-increment: s; }
+.steps li:not(.done)::before {
+  background: rgba(255,255,255,0.2);
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: bold;
+}
+.sidebar-foot {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  font-size: 12px;
+  opacity: 0.8;
+}
+.sidebar-foot button {
+  background: rgba(255,255,255,0.1);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.sidebar-foot button:hover { background: rgba(255,255,255,0.2); }
+
+/* ==== メイン ==== */
+.main {
+  padding: 40px 60px;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+@media (max-width: 800px) {
+  .main { padding: 24px 20px; max-height: none; }
+}
+.step-content { max-width: 800px; margin: 0 auto; }
+.step-content h2 {
+  font-size: 28px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.step-content .step-meta {
+  color: #888;
+  font-size: 13px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 16px;
+}
+.step-content .step-meta span::before {
+  margin-right: 4px;
+}
+.step-content .lead {
+  font-size: 15px;
+  color: #555;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+/* ==== カード ==== */
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.card.numbered { padding-left: 64px; position: relative; }
+.card-num {
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  background: linear-gradient(135deg, #ff6b9d, #c44569);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(196,69,105,0.3);
+}
+.card h3 {
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+.card p {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 8px;
+}
+.card p:last-child { margin-bottom: 0; }
+
+/* ==== ボタン ==== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: all 0.15s;
+  margin: 4px 4px 4px 0;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #ff6b9d, #c44569);
+  color: white;
+  box-shadow: 0 2px 8px rgba(196,69,105,0.3);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(196,69,105,0.4); }
+.btn-link {
+  background: #007aff;
+  color: white;
+}
+.btn-link:hover { background: #0056b3; }
+.btn-copy {
+  background: #34c759;
+  color: white;
+}
+.btn-copy:hover { background: #248a3d; }
+.btn-copy.copied { background: #248a3d; }
+.btn-secondary {
+  background: white;
+  color: #555;
+  border: 1px solid #ddd;
+}
+.btn-secondary:hover { background: #f5f5f7; }
+.btn-large { padding: 14px 28px; font-size: 16px; }
+
+/* ==== コードブロック ==== */
+.code-block {
+  background: #1e1e1e;
+  color: #dcdcdc;
+  padding: 16px;
+  border-radius: 8px;
+  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-x: auto;
+  position: relative;
+  margin: 12px 0;
+  white-space: pre;
+}
+.code-block.highlight-bg { background: #fff8dc; color: #1e1e1e; }
+.code-block-wrap { position: relative; }
+.code-block-copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 11px;
+  padding: 6px 12px;
+  z-index: 5;
+}
+
+/* ==== 入力 ==== */
+.input-group { margin: 12px 0; }
+.input-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 6px;
+  color: #444;
+}
+.input-group input,
+.input-group textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.input-group input:focus,
+.input-group textarea:focus {
+  outline: none;
+  border-color: #ff6b9d;
+}
+.input-group input.valid { border-color: #34c759; background: #f0fff4; }
+.input-group input.invalid { border-color: #ff3b30; background: #fff5f5; }
+.input-hint {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}
+.input-hint.error { color: #ff3b30; }
+
+/* ==== Alerts ==== */
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+.alert-warn { background: #fff3cd; border-left: 4px solid #ffc107; color: #856404; }
+.alert-warn::before { content: '⚠️ '; font-weight: bold; }
+.alert-tip { background: #d1ecf1; border-left: 4px solid #17a2b8; color: #0c5460; }
+.alert-tip::before { content: '💡 '; font-weight: bold; }
+.alert-success { background: #d4edda; border-left: 4px solid #28a745; color: #155724; }
+.alert-success::before { content: '✅ '; font-weight: bold; }
+.alert-error { background: #f8d7da; border-left: 4px solid #dc3545; color: #721c24; }
+.alert-error::before { content: '❌ '; font-weight: bold; }
+
+/* ==== ナビ ==== */
+.nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #eee;
+}
+
+/* ==== チェックリスト ==== */
+.checklist label {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+  cursor: pointer;
+}
+.checklist input[type=checkbox] {
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+.checklist input:checked + span { text-decoration: line-through; opacity: 0.6; }
+
+/* ==== トーク ==== */
+.talk {
+  background: #fff8e1;
+  border: 2px dashed #ffc107;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 12px 0;
+  position: relative;
+}
+.talk::before {
+  content: '🗣 こう言う';
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  background: #ffc107;
+  color: white;
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+.talk-text {
+  font-size: 14px;
+  color: #5d4037;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* ==== ステップヘッダー特別装飾 ==== */
+.hero-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 24px;
+}
+.hero-card h2 { font-size: 28px; margin-bottom: 8px; color: white; }
+.hero-card p { color: rgba(255,255,255,0.9); font-size: 15px; }
+
+.welcome-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+.welcome-feature {
+  background: rgba(255,255,255,0.15);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+}
+
+/* ==== 完了画面 ==== */
+.celebration {
+  text-align: center;
+  padding: 40px 20px;
+}
+.celebration .emoji { font-size: 80px; margin-bottom: 20px; }
+.celebration h2 { font-size: 32px; color: #c44569; margin-bottom: 12px; }
+.celebration p { font-size: 16px; color: #555; margin-bottom: 24px; }
+
+/* ==== ファイル選択タブ ==== */
+.file-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 0;
+  border-bottom: 2px solid #e0e0e0;
+}
+.file-tabs button {
+  background: none;
+  border: none;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+  color: #888;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.15s;
+  font-family: monospace;
+}
+.file-tabs button.active {
+  color: #c44569;
+  border-bottom-color: #c44569;
+}
+
+.hidden { display: none !important; }
+
+/* ==== サイト選択カード（STEP 2） ==== */
+.site-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin: 12px 0 4px;
+}
+.site-check-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  background: white;
+  transition: all 0.15s;
+  user-select: none;
+}
+.site-check-card:hover {
+  border-color: #c44569;
+  background: #fff7fa;
+}
+.site-check-card.checked {
+  border-color: #c44569;
+  background: #fff0f5;
+  box-shadow: 0 1px 4px rgba(196,69,105,0.12);
+}
+.site-check-card input[type="checkbox"] {
+  margin: 3px 0 0 0;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #c44569;
+}
+.site-check-card .site-name {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+.site-check-card .site-domains {
+  font-size: 11px;
+  color: #888;
+  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  line-height: 1.6;
+}
+.site-check-card .site-body { flex: 1; min-width: 0; }
+.site-check-card .site-name.hotpepper { color: #e60039; }
+.site-check-card .site-name.rakuten   { color: #bf0000; }
+.site-check-card .site-name.minimo    { color: #00a86b; }
+.site-check-card .site-name.epark     { color: #0a7cff; }
+
+.from-input-wrap input.flash {
+  background: #fffbe5 !important;
+  transition: background 0.6s;
+}
+
+/* ==== サイト行リスト（STEP 2 改）==== */
+.site-row-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+.site-row {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+}
+.site-row.checked {
+  border-color: #c44569;
+  background: linear-gradient(180deg, #fff7fa, white);
+  box-shadow: 0 1px 4px rgba(196,69,105,0.1);
+}
+.site-row-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+.site-row.checked .site-row-header {
+  border-bottom: 1px dashed rgba(196,69,105,0.3);
+}
+.site-row-header input[type="checkbox"] {
+  width: 20px; height: 20px;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #c44569;
+}
+.site-row-header .site-body { flex: 1; }
+.site-row-header .site-name {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+.site-row-header .site-name.hotpepper { color: #e60039; }
+.site-row-header .site-name.rakuten   { color: #bf0000; }
+.site-row-header .site-name.minimo    { color: #00a86b; }
+.site-row-header .site-name.epark     { color: #0a7cff; }
+.site-row-header .site-tag {
+  font-size: 11px;
+  color: #888;
+  letter-spacing: 0.05em;
+}
+
+/* チェック時のみ展開して入力欄表示 */
+.site-input-wrap {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s, padding 0.3s;
+  padding: 0 18px;
+}
+.site-row.checked .site-input-wrap {
+  max-height: 200px;
+  padding: 14px 18px 18px 50px;
+  background: white;
+}
+.site-input-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #666;
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+}
+.site-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  background: white;
+  transition: border-color 0.15s, background 0.4s;
+}
+.site-input:focus {
+  outline: none;
+  border-color: #c44569;
+}
+.site-input.flash { background: #fffbe5; }
+.site-input-hint {
+  font-size: 11px;
+  color: #999;
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ==== サイドバー ==== -->
+  <aside class="sidebar">
+    <h1>🌸 セットアップウィザード</h1>
+    <div class="sub">ホットペッパー予約通知ツール</div>
+
+    <div class="progress"><div class="progress-bar" id="progress-bar" style="width: 0%"></div></div>
+
+    <ul class="steps" id="step-list">
+      <li data-step="0">スタート</li>
+      <li data-step="1">Gmail準備</li>
+      <li data-step="2">予約サイト選択</li>
+      <li data-step="3">LINEアカウント作成</li>
+      <li data-step="4">トークン取得</li>
+      <li data-step="5">スタッフ友だち追加</li>
+      <li data-step="6">グループ作成(任意)</li>
+      <li data-step="7">通知先ID取得</li>
+      <li data-step="8">GASプロジェクト作成</li>
+      <li data-step="9">6ファイル貼り付け</li>
+      <li data-step="10">設定の自動生成</li>
+      <li data-step="11">動作テスト</li>
+      <li data-step="12">本番テスト</li>
+      <li data-step="13">完了！</li>
+    </ul>
+
+    <div class="sidebar-foot">
+      入力内容は自動保存されます<br>
+      <button onclick="resetAll()">最初からやり直す</button>
+    </div>
+  </aside>
+
+  <!-- ==== メイン ==== -->
+  <main class="main">
+    <div id="step-container"></div>
+  </main>
+</div>
+
+<script>
+// =============================================
+// データ・状態管理
+// =============================================
+const STORAGE_KEY = 'hp_wizard_v1';
+const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+state.currentStep = state.currentStep || 0;
+state.done = state.done || {};
+state.lineToken = state.lineToken || '';
+state.groupId = state.groupId || '';
+state.salonName = state.salonName || '';
+state.installerName = state.installerName || '';
+state.gmailAddress = state.gmailAddress || '';
+state.fromAddress = state.fromAddress || '';
+state.contractPlan = state.contractPlan || 'light';
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function resetAll() {
+  if (confirm('すべての入力内容をリセットしますか？')) {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+}
+
+// =============================================
+// GASコード（埋め込み・コピー対象）
+// =============================================
+const GAS_FILES = {
+  'Config.gs': function(token, groupId, fromAddress, contractPlan) {
+    const quotaByPlan = { light: 200, standard: 5000, pro: 30000 };
+    const quota = quotaByPlan[contractPlan] || 200;
+    const planLabel = { light: 'ライト', standard: 'スタンダードプレミアム', pro: 'プロ' }[contractPlan] || 'ライト';
+    return `/**
+ * 設定ファイル
+ * 契約プラン: ${planLabel}
+ * 対応予約サイト: ホットペッパー / 楽天ビューティー / minimo / EPARK Beauty
+ */
+const CONFIG = {
+  LINE_CHANNEL_ACCESS_TOKEN: '${token || 'ここにLINEチャネルアクセストークンを貼る'}',
+
+  LINE_TO_IDS: [
+    '${groupId || 'ここに通知先IDを貼る'}'
+  ],
+
+  // 後方互換用: サイト別カレンダーが未設定のときに使う単一カレンダー
+  CALENDAR_ID: 'primary',
+
+  // サイト別カレンダー（推奨）
+  // setupSiteCalendars() を1回実行すれば自動でカレンダーが作成され、IDが ScriptProperties に保存される
+  // 手動で設定したい場合のみ以下に直接記入する（通常は空でOK）
+  CALENDAR_IDS: {
+    hotpepper: '',
+    rakuten:   '',
+    minimo:    '',
+    epark:     '',
+  },
+
+  EVENT_TITLE_PREFIX: '【予約】',
+
+  // 予約メールの送信元（空ならGMAIL_SEARCH_QUERYを使う / 複数はスペース区切り）
+  FROM_ADDRESS: '${fromAddress || ''}',
+
+  // FROM_ADDRESS が空のときに使うデフォルト検索クエリ（4予約サイト対応）
+  GMAIL_SEARCH_QUERY: 'from:(salonboard.com OR beauty.hotpepper.jp OR rakuten.co.jp OR minimodel.jp OR epark.jp) is:unread newer_than:1d',
+
+  PROCESSED_LABEL: 'HotPepper-処理済み',
+  ERROR_LABEL: 'HotPepper-エラー',
+  MAX_THREADS_PER_RUN: 20,
+
+  // 月曜朝9時に週次ヘルスチェック通知をLINEに送る
+  ENABLE_HEALTHCHECK: true,
+
+  // LINE Messaging API のプラン上限（${planLabel}プランの月次上限）
+  LINE_MONTHLY_QUOTA: ${quota},
+  LINE_QUOTA_WARNING_RATIO: 0.75,
+
+  MAIN_FAILURE_THRESHOLD: 3,
+
+  SALON_NAME: '',
+};
+`;
+  },
+  'Parser.gs': () => `/**
+ * 予約メールパーサー（field-driven 統一アーキテクチャ）
+ *
+ * 設計原則:
+ * 1. フィールド定義テーブル (FIELD_DEFS) で各フィールドのラベル候補と値パターンを宣言
+ * 2. 統一エンジン (extractField) ですべて抽出。サイト別の個別ロジックなし
+ * 3. 区切り文字を柔軟に: コロン全半角・】・[ ]・空白・改行・全角空白・ピリオドすべて吸収
+ *    → 既知の3形式に同時対応:
+ *      a) salonboard 形式: ■field\\n　value
+ *      b) 楽天直送 形式:    【field】 value
+ *      c) コロン形式:        field: value または field：value
+ *
+ * 後方互換: parseHotPepper / parseRakutenBeauty / parseMinimo / parseEpark を維持。
+ * 内部ですべて統一エンジンを使う。
+ *
+ * 戻り値型 Reservation:
+ *   {
+ *     reservationNo: string,
+ *     customerName:  string,
+ *     startAt:       Date | null,
+ *     durationMin:   number (default 60),
+ *     menu:          string,
+ *     staff:         string,
+ *     phone:         string,
+ *     note:          string,
+ *     site:          'hotpepper' | 'rakuten' | 'minimo' | 'epark',
+ *     isCancel:      boolean,
+ *     isChange:      boolean,
+ *     raw:           string
+ *   }
+ */
+
+// 区切り文字パターン: フィールド名と値の間にあり得る文字をすべて吸収
+//   . (period: 予約No. に対応)
+//   \\s (whitespace: 半角/全角空白・改行・タブ)
+//   : (半角コロン)
+//   ：(全角コロン)
+//   】(右レンチキュラーブラケット: 楽天直送形式)
+//   ] (右角ブラケット: 念のため)
+const FIELD_SEP = '[.\\\\s:：】\\\\]]*';
+
+// 各フィールドの定義
+//   labels:       探すフィールド名（左から順に試す。長い・特定的なものを先に置く）
+//   valuePattern: 値の正規表現（キャプチャグループ1つ）
+//   suffix:       値の後ろの追加パターン（任意）
+//   flag:         追加の正規表現フラグ（任意）
+const FIELD_DEFS = {
+  reservationNo: {
+    labels: ['予約番号', '受付番号', '予約ID', '受付ID', '予約No'],
+    valuePattern: '([A-Za-z0-9_\\\\-]+)'
+  },
+  customerName: {
+    // 長くて特定的なラベルから順に。「お客様」は最後（minimo）。
+    labels: ['来店予定者名', 'お客様名', 'ご予約者', '氏\\\\s*名', 'お名前', 'お客様'],
+    valuePattern: '([^\\\\n\\\\r]+?)',
+    suffix: '\\\\s*様?\\\\s*$',
+    flag: 'm'
+  },
+  startAt: {
+    labels: ['ご予約日時', '予約日時', 'ご来店日時', '来店日時'],
+    valuePattern: '([0-9]{4}[\\\\/年][0-9]{1,2}[\\\\/月][0-9]{1,2}日?[^\\\\n]*?[0-9]{1,2}[:：][0-9]{2})'
+  },
+  durationMin: {
+    labels: ['所要時間目安', '所要時間'],
+    valuePattern: '([0-9]+\\\\s*時間\\\\s*[0-9]*\\\\s*分?|[0-9]+\\\\s*分)'
+  },
+  menu: {
+    labels: ['予約メニュー', 'ご予約メニュー', 'ご予約コース', '施術内容', 'メニュー', 'コース'],
+    valuePattern: '([^\\\\n\\\\r]+)'
+  },
+  coupon: {
+    // クーポン名はメニューが「その他」など総称的なとき施術内容として使う
+    labels: ['ご利用クーポン', '利用クーポン', 'クーポン名', 'クーポン'],
+    valuePattern: '([^\\\\n\\\\r]+)'
+  },
+  staff: {
+    labels: ['指名スタッフ', '指名スタイリスト', '担当スタイリスト', 'スタイリスト', '担当者', '担当', '指名'],
+    valuePattern: '([^\\\\n\\\\r]+)'
+  },
+  phone: {
+    labels: ['お客様連絡先', 'お客様電話番号', '電話番号', '連絡先', 'TEL'],
+    valuePattern: '([0-9\\\\-+\\\\s]+)'
+  },
+  note: {
+    labels: ['ご要望・備考', 'ご要望・ご相談', 'ご要望', '備\\\\s*考', 'お客様メモ', '要望'],
+    valuePattern: '([^\\\\n\\\\r]+)'
+  }
+};
+
+/**
+ * 統一フィールド抽出エンジン
+ * body から該当フィールドの値を抽出。何も取れなければ空文字を返す。
+ */
+function extractField(body, def) {
+  if (!body || typeof body !== 'string') return '';
+  const suffix = def.suffix || '';
+  const flag = def.flag || '';
+  for (const label of def.labels) {
+    const pattern = label + FIELD_SEP + def.valuePattern + suffix;
+    let re;
+    try {
+      re = new RegExp(pattern, flag);
+    } catch (e) {
+      continue; // ラベル自体が壊れた正規表現なら次へ
+    }
+    const m = body.match(re);
+    if (m && m[1] && m[1].trim()) return m[1].trim();
+  }
+  return '';
+}
+
+/**
+ * 予約メールを解析。サイト判定 + 全フィールド抽出。
+ */
+function parseReservationEmail(subject, body, fromAddress) {
+  const safeSubject = (typeof subject === 'string') ? subject : '';
+  const safeBody    = (typeof body    === 'string') ? body    : '';
+  const safeFrom    = (typeof fromAddress === 'string') ? fromAddress : '';
+
+  const site = detectSite(safeSubject, safeBody, safeFrom);
+
+  // 日時: フィールドラベル経由で取れなければ本文全体から救出
+  let startAt = parseJaDateTime(extractField(safeBody, FIELD_DEFS.startAt));
+  if (!startAt) startAt = parseStartAtFallback(safeBody);
+
+  // メニュー: 「その他/他/指定なし/なし」など総称的な値ならクーポン名で補完
+  let menu = extractField(safeBody, FIELD_DEFS.menu);
+  const coupon = extractField(safeBody, FIELD_DEFS.coupon);
+  if (coupon && /^(その他(?:メニュー)?|他|指定なし|なし|未指定)$/.test((menu || '').trim()) && !/^(利用クーポンなし|なし|未利用|未指定)$/.test(coupon.trim())) {
+    menu = coupon;
+  }
+
+  const result = {
+    reservationNo: extractField(safeBody, FIELD_DEFS.reservationNo),
+    customerName:  extractField(safeBody, FIELD_DEFS.customerName).replace(/\\s*様\\s*$/, '').trim(),
+    startAt:       startAt,
+    durationMin:   60,
+    menu:          menu,
+    staff:         extractField(safeBody, FIELD_DEFS.staff),
+    phone:         extractField(safeBody, FIELD_DEFS.phone),
+    note:          extractField(safeBody, FIELD_DEFS.note),
+    site:          site,
+    isCancel:      detectCancel(safeSubject, safeBody),
+    isChange:      detectChange(safeSubject, safeBody),
+    raw:           safeBody
+  };
+
+  const durStr = extractField(safeBody, FIELD_DEFS.durationMin);
+  if (durStr) result.durationMin = parseDurationMin(durStr);
+
+  return result;
+}
+
+// 新規予約メールにも「キャンセル料/時/規定」等の定型注意書きが入るので
+// 単純な /キャンセル|取消/ では新規が全部キャンセル扱いになる。
+// subject は強いシグナル、body は明確な通知文言のみに限定する。
+function detectCancel(subject, body) {
+  if (/キャンセル|取消/.test(subject || '')) return true;
+  return /(?:ご?予約).{0,6}(?:キャンセル|取消)|キャンセル.{0,3}(?:通知|完了|受付|されまし|され |いたしまし|手続|の.{0,3}お知らせ|です)|取消.{0,3}(?:通知|完了|受付|されまし|いたしまし)/.test(body || '');
+}
+
+function detectChange(subject, body) {
+  if (/(?:予約).{0,3}(?:変更|修正)|(?:変更|修正).{0,3}(?:通知|完了|のお知らせ|されまし)/.test(subject || '')) return true;
+  return /(?:ご?予約).{0,6}(?:変更|修正).{0,10}(?:通知|完了|されまし|いたしまし|のお知らせ|です)/.test(body || '');
+}
+
+// 日時抽出フォールバック: ラベル経由で取れなかったとき本文全体スキャン。
+// 「予約受付日時」「送信日時」等の管理用タイムスタンプはスキップ。
+function parseStartAtFallback(body) {
+  if (!body) return null;
+  const re = /(.{0,10})([0-9]{4}[\\/年][0-9]{1,2}[\\/月][0-9]{1,2}日?[^0-9\\n]{0,10}[0-9]{1,2}[:：][0-9]{2})/g;
+  let m;
+  while ((m = re.exec(body)) !== null) {
+    const prefix = m[1] || '';
+    if (/受付|送信|配信|連絡|発行|登録|更新|作成/.test(prefix)) continue;
+    const d = parseJaDateTime(m[2]);
+    if (d) return d;
+  }
+  return null;
+}
+
+/**
+ * 件名・本文・送信元から予約サイトを判定
+ */
+function detectSite(subject, body, fromAddress) {
+  const all = String((subject || '') + ' ' + (body || '') + ' ' + (fromAddress || '')).toLowerCase();
+  if (/rakuten\\.co\\.jp|楽天ビューティ|楽天ビューティー/i.test(all))  return 'rakuten';
+  if (/minimodel\\.jp|minimo|ミニモ/i.test(all))                     return 'minimo';
+  if (/epark\\.jp|epark beauty/i.test(all))                          return 'epark';
+  if (/salonboard\\.com|hotpepper|ホットペッパー/i.test(all))          return 'hotpepper';
+  return 'hotpepper';
+}
+
+/**
+ * 日本語混じり日時文字列を Date に変換
+ *   "2026/05/02 (土) 14:00"  → Date(2026, 4, 2, 14, 0)
+ *   "2026年5月10日(日) 11:30" → Date(2026, 4, 10, 11, 30)
+ *   "2026年05月02日（）19:00" → Date(2026, 4, 2, 19, 0)  ※曜日空でもOK
+ */
+function parseJaDateTime(str) {
+  if (!str || typeof str !== 'string') return null;
+  const m = str.match(/([0-9]{4})[\\/年]([0-9]{1,2})[\\/月]([0-9]{1,2})日?[^0-9]*([0-9]{1,2})[:：]([0-9]{2})/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi] = m.map(Number);
+  return new Date(y, mo - 1, d, h, mi, 0);
+}
+
+/**
+ * 「1時間30分」「90分」 → 90 (分)
+ */
+function parseDurationMin(str) {
+  if (!str) return 60;
+  let total = 0;
+  const h = str.match(/([0-9]+)\\s*時間/);
+  const m = str.match(/([0-9]+)\\s*分/);
+  if (h) total += Number(h[1]) * 60;
+  if (m) total += Number(m[1]);
+  return total || 60;
+}
+
+// ============================================================
+// 後方互換ラッパー
+// 既存の呼び出し元（Diagnostics.gs など）が parseHotPepper 等を直接呼ぶケースに対応。
+// 内部は統一エンジンを使い、site を強制上書きするだけ。
+// ============================================================
+
+function parseHotPepper(subject, body) {
+  const r = parseReservationEmail(subject, body);
+  r.site = 'hotpepper';
+  return r;
+}
+
+function parseRakutenBeauty(subject, body) {
+  const r = parseReservationEmail(subject, body);
+  r.site = 'rakuten';
+  return r;
+}
+
+function parseMinimo(subject, body) {
+  const r = parseReservationEmail(subject, body);
+  r.site = 'minimo';
+  return r;
+}
+
+function parseEpark(subject, body) {
+  const r = parseReservationEmail(subject, body);
+  r.site = 'epark';
+  return r;
+}
+
+// ============================================================
+// 旧 matchOne / baseResult の互換 stub（万が一どこかから呼ばれていた場合用）
+// ============================================================
+
+function matchOne(text, patterns) {
+  if (!text || typeof text !== 'string') return '';
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m && m[1]) return m[1].trim();
+  }
+  return '';
+}
+
+function baseResult(body, site) {
+  return {
+    reservationNo: '', customerName: '', startAt: null,
+    durationMin: 60, menu: '', staff: '', phone: '', note: '',
+    site: site, isCancel: false, isChange: false, raw: body || ''
+  };
+}
+`,
+  'Line.gs': () => `/**
+ * LINE Messaging API への通知
+ */
+function notifyLine(reservation) {
+  const text = buildLineMessage(reservation);
+  for (const toId of CONFIG.LINE_TO_IDS) {
+    if (!toId || toId.indexOf('ここに') === 0) continue;
+    pushLineMessage(toId, text);
+  }
+}
+
+function buildLineMessage(r) {
+  const siteLabel = { hotpepper:'ホッペ', rakuten:'楽天', minimo:'minimo', epark:'EPARK' }[r.site] || '';
+  const header = r.isCancel ? '❌ 予約キャンセル'
+              : r.isChange ? '🔄 予約変更'
+              : '✅ 新規予約';
+  const lines = [
+    siteLabel ? \`\${header} [\${siteLabel}]\` : \`\${header}\`,
+    '',
+    \`👤 \${r.customerName || '(名前不明)'} 様\`
+  ];
+  if (r.startAt) {
+    lines.push(\`📅 \${formatJaDateTime(r.startAt)} (\${r.durationMin}分)\`);
+  } else {
+    lines.push('⚠️ 日時の自動取得に失敗（カレンダー登録スキップ）');
+    lines.push('   ホットペッパー/サロンキープで詳細確認 → 手動でカレンダー登録');
+  }
+  if (r.menu) lines.push(\`💇 \${r.menu}\`);
+  if (r.staff) lines.push(\`👥 担当: \${r.staff}\`);
+  if (r.phone) lines.push(\`📞 \${r.phone}\`);
+  if (r.note) lines.push(\`📝 \${r.note}\`);
+  if (r.reservationNo) lines.push(\`🔖 \${r.reservationNo}\`);
+  return lines.join('\\n');
+}
+
+function pushLineMessage(toId, text) {
+  pushLineMessageRaw(toId, text);
+  incrementQuotaCounter();
+}
+
+function pushLineMessageRaw(toId, text) {
+  const url = 'https://api.line.me/v2/bot/message/push';
+  const payload = { to: toId, messages: [{ type: 'text', text: text }] };
+  const res = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + CONFIG.LINE_CHANNEL_ACCESS_TOKEN },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true,
+  });
+  const code = res.getResponseCode();
+  if (code === 401 || code === 403) throw new Error('LINEトークン無効 (status=' + code + ')');
+  if (code !== 200) throw new Error('LINE送信失敗 status=' + code + ' body=' + res.getContentText());
+}
+
+function incrementQuotaCounter() {
+  const props = PropertiesService.getScriptProperties();
+  const ym = monthKey();
+  const key = 'lineQuota_' + ym;
+  const current = Number(props.getProperty(key) || '0') + 1;
+  props.setProperty(key, String(current));
+  const warnFlagKey = 'lineQuotaWarned_' + ym;
+  if (props.getProperty(warnFlagKey)) return;
+  const threshold = Math.floor(CONFIG.LINE_MONTHLY_QUOTA * CONFIG.LINE_QUOTA_WARNING_RATIO);
+  if (current >= threshold) {
+    props.setProperty(warnFlagKey, '1');
+    sendQuotaWarning(current, CONFIG.LINE_MONTHLY_QUOTA);
+  }
+}
+
+function getMonthlyQuotaUsage() {
+  return Number(PropertiesService.getScriptProperties().getProperty('lineQuota_' + monthKey()) || '0');
+}
+
+function sendQuotaWarning(current, quota) {
+  const text = '⚠️ LINE通知 月次利用量の警告\\n\\n今月: ' + current + ' / ' + quota + '通\\n残り: ' + (quota - current) + '通\\n\\n上限到達でLINE通知が止まります。本社サポートに連絡してプランアップ検討を。';
+  for (const toId of CONFIG.LINE_TO_IDS) {
+    if (!toId || toId.indexOf('ここに') === 0) continue;
+    try { pushLineMessageRaw(toId, text); } catch (e) { Logger.log('クォータ警告送信失敗: ' + e.message); }
+  }
+}
+
+function monthKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function formatJaDateTime(d) {
+  const days = ['日','月','火','水','木','金','土'];
+  const pad = n => String(n).padStart(2,'0');
+  return \`\${d.getFullYear()}/\${pad(d.getMonth()+1)}/\${pad(d.getDate())}(\${days[d.getDay()]}) \${pad(d.getHours())}:\${pad(d.getMinutes())}\`;
+}
+`,
+  'Calendar.gs': () => `/**
+ * Googleカレンダーへの予約登録（サイト別カレンダー対応）
+ *
+ * - サイトごとに別カレンダーへ登録 → サロン側はワンクリックで「ホッペだけ表示」「全部表示」を切替可能
+ * - カレンダーID解決順: ScriptProperties → CONFIG.CALENDAR_IDS → CONFIG.CALENDAR_ID
+ */
+function registerCalendar(reservation) {
+  if (!reservation.startAt) { Logger.log('日時不明のためスキップ'); return; }
+  const calendarId = resolveCalendarId(reservation.site);
+  const cal = CalendarApp.getCalendarById(calendarId);
+  if (!cal) throw new Error('カレンダーが見つかりません: ' + calendarId);
+  const endAt = new Date(reservation.startAt.getTime() + reservation.durationMin * 60000);
+  const title = buildEventTitle(reservation);
+  const description = buildEventDescription(reservation);
+  const existing = reservation.reservationNo
+    ? findExistingEvent(cal, reservation.reservationNo, reservation.startAt)
+    : null;
+  if (reservation.isCancel) {
+    if (existing) { existing.deleteEvent(); Logger.log('削除: ' + title); }
+    return;
+  }
+  if (existing) {
+    existing.setTitle(title);
+    existing.setTime(reservation.startAt, endAt);
+    existing.setDescription(description);
+    Logger.log('更新: ' + title);
+    return;
+  }
+  cal.createEvent(title, reservation.startAt, endAt, { description: description });
+  Logger.log('作成: ' + title);
+}
+
+function resolveCalendarId(site) {
+  const props = PropertiesService.getScriptProperties();
+  const fromProps = props.getProperty('calendarId_' + site);
+  if (fromProps) return fromProps;
+  if (CONFIG.CALENDAR_IDS && CONFIG.CALENDAR_IDS[site]) return CONFIG.CALENDAR_IDS[site];
+  return CONFIG.CALENDAR_ID || 'primary';
+}
+
+function buildEventTitle(r) {
+  const siteLabel = { hotpepper:'[ホッペ]', rakuten:'[楽天]', minimo:'[minimo]', epark:'[EPARK]' }[r.site] || '';
+  return CONFIG.EVENT_TITLE_PREFIX
+       + (siteLabel ? siteLabel + ' ' : '')
+       + (r.customerName || '名前不明') + ' 様'
+       + (r.menu ? ' / ' + r.menu : '');
+}
+
+function findExistingEvent(cal, reservationNo, around) {
+  const from = new Date(around.getTime() - 90 * 24 * 3600 * 1000);
+  const to   = new Date(around.getTime() + 90 * 24 * 3600 * 1000);
+  const events = cal.getEvents(from, to, { search: reservationNo });
+  for (const ev of events) {
+    if ((ev.getDescription() || '').indexOf(reservationNo) >= 0) return ev;
+  }
+  return null;
+}
+
+function buildEventDescription(r) {
+  const siteLabel = { hotpepper:'ホットペッパー', rakuten:'楽天ビューティー', minimo:'minimo', epark:'EPARK Beauty' }[r.site] || '予約サイト';
+  const parts = [];
+  parts.push('予約サイト: ' + siteLabel);
+  if (r.staff) parts.push('担当: ' + r.staff);
+  if (r.phone) parts.push('TEL: ' + r.phone);
+  if (r.note)  parts.push('備考: ' + r.note);
+  if (r.reservationNo) parts.push('予約番号: ' + r.reservationNo);
+  parts.push('');
+  parts.push('-- サロン予約一元通知ツール 自動登録 --');
+  return parts.join('\\n');
+}
+
+/**
+ * サイト別カレンダーを自動作成（初回1回だけ実行）
+ * 4つのカレンダーがGoogleカレンダー上に作成され、ID保存される
+ */
+function setupSiteCalendars() {
+  const props = PropertiesService.getScriptProperties();
+  const salonName = CONFIG.SALON_NAME || 'サロン';
+  const sites = [
+    { key:'hotpepper', label:'ホットペッパー予約',   color: CalendarApp.Color.RED },
+    { key:'rakuten',   label:'楽天ビューティー予約', color: CalendarApp.Color.PINK },
+    { key:'minimo',    label:'minimo予約',          color: CalendarApp.Color.GREEN },
+    { key:'epark',     label:'EPARK Beauty予約',    color: CalendarApp.Color.BLUE },
+  ];
+  const results = [];
+  for (const site of sites) {
+    const propKey = 'calendarId_' + site.key;
+    const existingId = props.getProperty(propKey);
+    if (existingId && CalendarApp.getCalendarById(existingId)) {
+      results.push('✅ 既存: ' + site.label);
+      continue;
+    }
+    if (existingId) props.deleteProperty(propKey);
+    const cal = CalendarApp.createCalendar(site.label + ' - ' + salonName);
+    cal.setColor(site.color);
+    cal.setDescription('「サロン予約一元通知ツール」が自動登録する ' + site.label + ' のカレンダー');
+    props.setProperty(propKey, cal.getId());
+    results.push('🆕 作成: ' + site.label);
+  }
+  Logger.log(results.join('\\n'));
+  return results;
+}
+
+function listSiteCalendars() {
+  const props = PropertiesService.getScriptProperties();
+  const sites = ['hotpepper','rakuten','minimo','epark'];
+  const lines = ['【サイト別カレンダー設定】'];
+  for (const s of sites) {
+    const id = props.getProperty('calendarId_' + s);
+    const cal = id ? CalendarApp.getCalendarById(id) : null;
+    lines.push('  ' + s + ': ' + (cal ? cal.getName() : '未設定'));
+  }
+  Logger.log(lines.join('\\n'));
+}
+`,
+  'Main.gs': () => `/**
+ * メインエントリーポイント
+ */
+function main() {
+  try {
+    runMain();
+    PropertiesService.getScriptProperties().deleteProperty('mainFailureCount');
+  } catch (e) {
+    Logger.log('main() 全体失敗: ' + e.message);
+    incrementMainFailureCount(e);
+    throw e;
+  }
+}
+
+function runMain() {
+  const processedLabel = getOrCreateLabel(CONFIG.PROCESSED_LABEL);
+  const errorLabel     = getOrCreateLabel(CONFIG.ERROR_LABEL);
+  const threads = GmailApp.search(buildSearchQuery(), 0, CONFIG.MAX_THREADS_PER_RUN);
+  for (const thread of threads) {
+    if (hasLabel(thread, processedLabel)) continue;
+    try {
+      processThread(thread);
+      thread.addLabel(processedLabel);
+      thread.markRead();
+    } catch (e) {
+      Logger.log('処理失敗: ' + e.message);
+      thread.addLabel(errorLabel);
+      try { notifyLineError(e, thread); } catch (e2) {}
+    }
+  }
+}
+
+function incrementMainFailureCount(err) {
+  const props = PropertiesService.getScriptProperties();
+  const count = Number(props.getProperty('mainFailureCount') || '0') + 1;
+  props.setProperty('mainFailureCount', String(count));
+  if (count >= CONFIG.MAIN_FAILURE_THRESHOLD) {
+    sendMainFailureWarning(count, err);
+    props.deleteProperty('mainFailureCount');
+  }
+}
+
+function sendMainFailureWarning(count, err) {
+  const text = '🚨 ホットペッパー予約通知ツール 連続エラー\\n\\nmain()が ' + count + '回連続で失敗しました。\\n最新エラー: ' + err.message + '\\n\\n考えられる原因:\\n・LINEトークン期限切れ\\n・権限失効\\n・LINE/Google側障害\\n\\nGAS実行ログを確認するか本社サポートへ。';
+  for (const toId of CONFIG.LINE_TO_IDS) {
+    if (!toId || toId.indexOf('ここに') === 0) continue;
+    try { pushLineMessageRaw(toId, text); } catch (e) { Logger.log('連続失敗警告送信失敗: ' + e.message); }
+  }
+}
+
+function buildSearchQuery() {
+  if (CONFIG.FROM_ADDRESS && CONFIG.FROM_ADDRESS.trim()) {
+    const addrs = CONFIG.FROM_ADDRESS.trim().split(/[\\s,、]+/).filter(Boolean);
+    // 複数アドレスは各々に from: を付ける（Gmail検索の仕様）
+    const fromQuery = addrs.length > 1
+      ? '(' + addrs.map(function(a) { return 'from:' + a; }).join(' OR ') + ')'
+      : 'from:' + addrs[0];
+    return fromQuery + ' is:unread newer_than:1d';
+  }
+  return CONFIG.GMAIL_SEARCH_QUERY;
+}
+
+// 検証用クエリ: is:unread を外し newer_than:7d まで遡る
+// （テストメールを開いた瞬間に既読化されて拾えない事故を防ぐ）
+function buildTestSearchQuery() {
+  if (CONFIG.FROM_ADDRESS && CONFIG.FROM_ADDRESS.trim()) {
+    const addrs = CONFIG.FROM_ADDRESS.trim().split(/[\\s,、]+/).filter(Boolean);
+    const fromQuery = addrs.length > 1
+      ? '(' + addrs.map(function(a) { return 'from:' + a; }).join(' OR ') + ')'
+      : 'from:' + addrs[0];
+    return fromQuery + ' newer_than:7d';
+  }
+  const base = (CONFIG.GMAIL_SEARCH_QUERY || '')
+    .replace(/\\bis:unread\\b/gi, '')
+    .replace(/\\bnewer_than:\\d+[dhm]\\b/gi, '')
+    .replace(/\\s+/g, ' ')
+    .trim();
+  return (base ? base + ' ' : '') + 'newer_than:7d';
+}
+
+function processThread(thread) {
+  const messages = thread.getMessages();
+  const msg = messages[messages.length - 1];
+  const reservation = parseReservationEmail(msg.getSubject() || '', msg.getPlainBody() || '', msg.getFrom() || '');
+  // 予約と判定できないメール（お知らせ等）はスキップ
+  if (!reservation.startAt && !reservation.customerName && !reservation.reservationNo) {
+    Logger.log('予約と判定できないメールのためスキップ');
+    return;
+  }
+  notifyLine(reservation);
+  registerCalendar(reservation);
+}
+
+function getOrCreateLabel(name) {
+  return GmailApp.getUserLabelByName(name) || GmailApp.createLabel(name);
+}
+
+function hasLabel(thread, label) {
+  return thread.getLabels().some(l => l.getName() === label.getName());
+}
+
+function notifyLineError(err, thread) {
+  const text = '⚠️ ホットペッパー通知ツールでエラー\\n\\n件名: ' + thread.getFirstMessageSubject() + '\\nエラー: ' + err.message;
+  for (const toId of CONFIG.LINE_TO_IDS) {
+    if (!toId || toId.indexOf('ここに') === 0) continue;
+    pushLineMessage(toId, text);
+  }
+}
+
+function healthCheck() {
+  if (!CONFIG.ENABLE_HEALTHCHECK) return;
+  const stats = getWeeklyStats();
+  const usage = getMonthlyQuotaUsage();
+  const quota = CONFIG.LINE_MONTHLY_QUOTA;
+  const usageRatio = quota > 0 ? Math.round(usage / quota * 100) : 0;
+  const lines = [
+    '✅ ホットペッパー予約通知ツール 正常稼働中',
+    '',
+    '【過去7日の処理状況】',
+    '・予約処理: ' + stats.processed + '件',
+    '・エラー: ' + stats.errors + '件',
+    '',
+    '【今月のLINE通知】',
+    '・送信数: ' + usage + ' / ' + quota + '通 (' + usageRatio + '%)',
+    usageRatio >= 75 ? '⚠️ 上限が近づいています。プランアップ検討を。' : '・残り余裕あり',
+    '',
+    stats.errors > 0
+      ? '⚠️ エラーがあります。Gmailで「' + CONFIG.ERROR_LABEL + '」ラベルを確認してください。'
+      : '問題なく動作しています。'
+  ];
+  const text = lines.join('\\n');
+  for (const toId of CONFIG.LINE_TO_IDS) {
+    if (!toId || toId.indexOf('ここに') === 0) continue;
+    pushLineMessage(toId, text);
+  }
+  Logger.log('ヘルスチェック通知送信: ' + JSON.stringify({ stats: stats, usage: usage, quota: quota }));
+}
+
+function getWeeklyStats() {
+  const processed = GmailApp.search('label:"' + CONFIG.PROCESSED_LABEL + '" newer_than:7d').length;
+  const errors    = GmailApp.search('label:"' + CONFIG.ERROR_LABEL + '" newer_than:7d').length;
+  return { processed: processed, errors: errors };
+}
+
+function testLine() {
+  notifyLine({
+    reservationNo: 'TEST-0001', customerName: 'テスト太郎',
+    startAt: new Date(), durationMin: 60,
+    menu: 'カット', staff: '山田',
+    phone: '090-0000-0000', note: 'これはテスト通知です',
+    isCancel: false, isChange: false,
+  });
+  Logger.log('LINE送信テスト完了');
+}
+
+function testCalendar() {
+  registerCalendar({
+    reservationNo: 'TEST-0001', customerName: 'テスト太郎',
+    startAt: new Date(Date.now() + 24 * 3600 * 1000), durationMin: 60,
+    menu: 'カット', staff: '山田',
+    phone: '090-0000-0000', note: 'これはテスト登録です',
+    isCancel: false, isChange: false,
+  });
+  Logger.log('カレンダー登録テスト完了');
+}
+
+function testHealthCheck() {
+  healthCheck();
+}
+
+function testParseAndNotifyLatest() {
+  const query = buildTestSearchQuery();
+  Logger.log('検証用検索クエリ: ' + query);
+  const threads = GmailApp.search(query, 0, 1);
+  if (threads.length === 0) {
+    const hint = [
+      '⚠️ 検証用パース実行：対象メールが見つかりません。',
+      '',
+      '【チェックポイント】',
+      '① ホットペッパー(または該当予約サイト)で本物のテスト予約を入れましたか？',
+      '② 入れた直後はメール到着まで数分かかります。少し待って再実行してください。',
+      '③ そのメールは直近7日以内に届いていますか？（それ以前のメールはここでは拾えません）',
+      '④ Config.gs の FROM_ADDRESS / GMAIL_SEARCH_QUERY と実際の送信元アドレスが一致していますか？',
+      '',
+      '検索クエリ: ' + query
+    ].join('\\n');
+    for (const toId of CONFIG.LINE_TO_IDS) {
+      if (!toId || toId.indexOf('ここに') === 0) continue;
+      pushLineMessage(toId, hint);
+    }
+    Logger.log('対象メールが見つかりません（クエリ: ' + query + '）');
+    return;
+  }
+  const msg = threads[0].getMessages()[0];
+  const reservation = parseReservationEmail(msg.getSubject() || '', msg.getPlainBody() || '', msg.getFrom() || '');
+  Logger.log('パース結果: ' + JSON.stringify(reservation, null, 2));
+  const summary = [
+    '🔍 実物メール パース結果（検証用）',
+    '━━━━━━━━━━━━',
+    '件名: ' + (msg.getSubject() || '(なし)'),
+    '',
+    'お客様名: ' + (reservation.customerName || '⚠️ 取得失敗'),
+    '日時: ' + (reservation.startAt ? formatJaDateTime(reservation.startAt) + ' (' + reservation.durationMin + '分)' : '⚠️ 取得失敗'),
+    'メニュー: ' + (reservation.menu || '⚠️ 取得失敗'),
+    '担当: ' + (reservation.staff || '⚠️ 取得失敗'),
+    '電話: ' + (reservation.phone || '⚠️ 取得失敗'),
+    '予約番号: ' + (reservation.reservationNo || '⚠️ 取得失敗'),
+    '備考: ' + (reservation.note || '(なし)'),
+    '区分: ' + (reservation.isCancel ? 'キャンセル' : reservation.isChange ? '変更' : '新規'),
+    '━━━━━━━━━━━━',
+    '↓この後 実際の通知形式 を送信↓'
+  ].join('\\n');
+  for (const toId of CONFIG.LINE_TO_IDS) {
+    if (!toId || toId.indexOf('ここに') === 0) continue;
+    pushLineMessage(toId, summary);
+  }
+  notifyLine(reservation);
+  Logger.log('検証通知 + 実通知形式 を送信完了');
+}
+
+function installTriggers() {
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === 'main' || t.getHandlerFunction() === 'healthCheck')
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('main').timeBased().everyMinutes(1).create();
+  if (CONFIG.ENABLE_HEALTHCHECK) {
+    ScriptApp.newTrigger('healthCheck').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(9).create();
+  }
+  Logger.log('トリガー設定完了（1分おきメイン' + (CONFIG.ENABLE_HEALTHCHECK ? ' + 月曜9時の週次ヘルスチェック' : '') + '）');
+}
+`,
+  'Diagnostics.gs': () => `/**
+ * 動作検証・診断用ユーティリティ
+ *
+ * Gmail を介さず、4サイトの予約メールサンプルを直接パイプラインに流し込んで
+ * 「サイト検知 → LINE通知 → カレンダー登録」が正しく動くかを1発で検証する。
+ *
+ * 使い方:
+ *   1. GASエディタ上部の関数選択で「diagnoseAllSites」を選択
+ *   2. ▶ 実行
+ *   3. LINE に [ホッペ] [楽天] [minimo] [EPARK] の4種類の通知が届くことを確認
+ *   4. Googleカレンダーに4種類のイベントが登録されることを確認
+ *   5. 実行ログ（表示 → ログ）で診断結果を確認
+ */
+
+// ============================================================
+// 4サイトのテスト用予約メール（フィクスチャ）
+// ============================================================
+
+const DIAG_FIXTURES = {
+  hotpepper: {
+    subject: '【ホットペッパービューティー】ご予約が入りました',
+    from: 'reservation@salonboard.com',
+    body:
+      '【ホットペッパービューティー】サロンボード\\n' +
+      'ご予約が入りました。\\n\\n' +
+      '■予約番号: HP-DIAG-001\\n' +
+      'お客様名: 診断 太郎 様\\n' +
+      '予約日時: 2026/05/10(日) 11:00\\n' +
+      '所要時間: 60分\\n' +
+      'メニュー: カット+カラー\\n' +
+      '担当: スタッフ\\n' +
+      '電話番号: 080-0000-0001\\n' +
+      '備考: ホッペ動作確認\\n'
+  },
+  rakuten: {
+    subject: '[楽天ビューティ] ご予約が入りました',
+    from: 'noreply@beauty.rakuten.co.jp',
+    body:
+      '[楽天ビューティ] ご予約が入りました\\n\\n' +
+      '────────────────────────────────\\n' +
+      '受付番号: RKB-DIAG-002\\n' +
+      'お名前: 診断 花子 様\\n' +
+      'ご予約日時: 2026年5月10日(日) 13:00\\n' +
+      '所要時間: 90分\\n' +
+      'ご予約コース: ハーブカラー + トリートメント\\n' +
+      '指名スタイリスト: 田中\\n' +
+      'お客様連絡先: 080-0000-0002\\n' +
+      'ご要望: 楽天動作確認\\n' +
+      '────────────────────────────────\\n' +
+      '楽天ビューティの管理画面でもご確認いただけます。\\n' +
+      'https://beauty.rakuten.co.jp/salon/login/\\n'
+  },
+  minimo: {
+    subject: '[minimo] 新しいご予約が確定しました',
+    from: 'noreply@minimodel.jp',
+    body:
+      '[minimo] 新しいご予約が確定しました\\n\\n' +
+      'minimoをご利用いただきありがとうございます。\\n' +
+      '以下の内容でご予約が確定しましたのでお知らせします。\\n\\n' +
+      '▼ 予約詳細\\n' +
+      '予約No.: MNM-DIAG-003\\n' +
+      'お客様: 診断 美咲 様\\n' +
+      '来店日時: 2026/05/10 (日) 15:00\\n' +
+      '施術内容: カット + 前髪パーマ\\n' +
+      'スタイリスト: 山本\\n' +
+      '所要時間: 100分\\n' +
+      '電話番号: 080-0000-0003\\n' +
+      'お客様メモ: minimo動作確認\\n\\n' +
+      '▼ 管理画面\\n' +
+      'https://minimodel.jp/salon/manage/\\n'
+  },
+  epark: {
+    subject: '【EPARK Beauty】ご予約確定のお知らせ',
+    from: 'notice@beauty.epark.jp',
+    body:
+      '【EPARK Beauty】ご予約確定のお知らせ\\n\\n' +
+      '下記の通りご予約が確定しましたのでお知らせします。\\n\\n' +
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\n' +
+      '予約ID: EP-DIAG-004\\n' +
+      'お客様名: 診断 さくら 様\\n' +
+      'ご来店日時: 2026/05/10(日) 17:00\\n' +
+      'メニュー: トリートメント + ヘッドスパ\\n' +
+      '所要時間: 75分\\n' +
+      '担当スタイリスト: 渡辺\\n' +
+      'お客様電話番号: 080-0000-0004\\n' +
+      'ご要望・備考: EPARK動作確認\\n' +
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\n\\n' +
+      'EPARK Beauty 管理画面でも内容をご確認いただけます。\\n' +
+      'https://beauty.epark.jp/owner/login/\\n'
+  }
+};
+
+// ============================================================
+// 1. 全サイト一括診断（メイン関数）
+// ============================================================
+
+/**
+ * 4サイトの予約メールサンプルを直接パイプラインに流し、
+ * パース→LINE→カレンダー の3工程それぞれが正しく動くかを検証する。
+ *
+ * Gmail にメールが届くかどうかとは独立してテストできる。
+ */
+function diagnoseAllSites() {
+  Logger.log('========================================');
+  Logger.log('  全サイト動作診断 (Gmail を介さず実行)');
+  Logger.log('========================================\\n');
+
+  // 前提条件チェック: サイト別カレンダーが作成済みでなければ自動で作成
+  // （setupSiteCalendars 未実行で diagnoseAllSites を回すと、
+  //  全イベントが primary カレンダーに登録されて「カレンダーに反映されてない」
+  //  という誤認が起きる。それを防ぐため）
+  const props = PropertiesService.getScriptProperties();
+  const sites = ['hotpepper', 'rakuten', 'minimo', 'epark'];
+  const missing = sites.filter(function(s) { return !props.getProperty('calendarId_' + s); });
+  if (missing.length > 0) {
+    Logger.log('⚠️ サイト別カレンダーが未作成: ' + missing.join(', '));
+    Logger.log('   先に setupSiteCalendars() を自動実行します...\\n');
+    try {
+      setupSiteCalendars();
+      Logger.log('✅ サイト別カレンダー作成完了\\n');
+    } catch (e) {
+      Logger.log('❌ setupSiteCalendars 失敗: ' + e.message);
+      Logger.log('   手動で setupSiteCalendars を実行してから再度 diagnoseAllSites を実行してください。');
+      return;
+    }
+  }
+
+  const summary = [];
+
+  ['hotpepper', 'rakuten', 'minimo', 'epark'].forEach(function(site) {
+    const fixture = DIAG_FIXTURES[site];
+    Logger.log('--- [' + site.toUpperCase() + '] ' + fixture.subject + ' ---');
+
+    // 1. パース
+    const r = parseReservationEmail(fixture.subject, fixture.body, fixture.from);
+    Logger.log('検知サイト: ' + r.site);
+    Logger.log('お客様名: ' + r.customerName);
+    Logger.log('予約日時: ' + (r.startAt ? r.startAt.toLocaleString('ja-JP') : '取得失敗'));
+    Logger.log('予約番号: ' + r.reservationNo);
+
+    const parseOK = (r.site === site) && r.customerName && r.startAt;
+
+    // 2. LINE通知
+    let lineOK = false;
+    try {
+      const text = buildLineMessage(r);
+      Logger.log('LINE 本文:\\n' + text);
+      for (const toId of CONFIG.LINE_TO_IDS) {
+        if (!toId || toId.indexOf('ここに') === 0) continue;
+        pushLineMessageRaw(toId, text);
+      }
+      lineOK = true;
+    } catch (e) {
+      Logger.log('❌ LINE 送信エラー: ' + e.message);
+    }
+
+    // 3. カレンダー登録
+    let calOK = false;
+    let calId = '';
+    try {
+      calId = resolveCalendarId(r.site);
+      registerCalendar(r);
+      calOK = true;
+    } catch (e) {
+      Logger.log('❌ カレンダー登録エラー: ' + e.message);
+    }
+
+    summary.push({
+      site:    site,
+      parse:   parseOK ? '✅' : '❌',
+      line:    lineOK ? '✅' : '❌',
+      cal:     calOK ? '✅' : '❌',
+      calId:   calId
+    });
+
+    Logger.log('');
+  });
+
+  // 最終サマリ
+  Logger.log('========================================');
+  Logger.log('  診断結果サマリ');
+  Logger.log('========================================');
+  Logger.log('site       parse  LINE  Calendar  CalendarID');
+  summary.forEach(function(s) {
+    Logger.log(
+      pad(s.site, 11) +
+      pad(s.parse, 7) +
+      pad(s.line, 6) +
+      pad(s.cal, 10) +
+      s.calId
+    );
+  });
+  Logger.log('');
+  Logger.log('全部 ✅ なら4サイト完全対応 OK。');
+  Logger.log('❌ がある行は、その工程で問題あり。');
+}
+
+function pad(s, w) {
+  s = String(s);
+  while (s.length < w) s += ' ';
+  return s;
+}
+
+// ============================================================
+// 2. カレンダー設定の診断
+// ============================================================
+
+/**
+ * 現在のカレンダー設定を一覧表示。
+ *
+ * - サイト別カレンダーが作られているか
+ * - それぞれの ID は何か
+ * - アクセス可能か
+ * - 直近のイベントが何件あるか
+ *
+ * 問題の切り分けに使う。
+ */
+function diagnoseCalendars() {
+  Logger.log('========================================');
+  Logger.log('  カレンダー設定診断');
+  Logger.log('========================================\\n');
+
+  const props = PropertiesService.getScriptProperties();
+  const sites = ['hotpepper', 'rakuten', 'minimo', 'epark'];
+  const now = new Date();
+  const fromDate = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+  const toDate   = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
+
+  sites.forEach(function(site) {
+    const propKey = 'calendarId_' + site;
+    const fromProps = props.getProperty(propKey);
+    const fromConf  = (CONFIG.CALENDAR_IDS && CONFIG.CALENDAR_IDS[site]) || '';
+    const fallback  = CONFIG.CALENDAR_ID || 'primary';
+
+    Logger.log('[' + site + ']');
+    Logger.log('  ScriptProperties: ' + (fromProps || '(未設定)'));
+    Logger.log('  CONFIG.CALENDAR_IDS[' + site + ']: ' + (fromConf || '(未設定)'));
+    Logger.log('  最終的に使われるID: ' + (fromProps || fromConf || fallback));
+
+    const useId = fromProps || fromConf || fallback;
+    try {
+      const cal = CalendarApp.getCalendarById(useId);
+      if (!cal) {
+        Logger.log('  ❌ アクセス不可: カレンダーが見つからない');
+      } else {
+        Logger.log('  ✅ カレンダー名: ' + cal.getName());
+        const events = cal.getEvents(fromDate, toDate);
+        Logger.log('  直近30日±のイベント数: ' + events.length);
+        const auto = events.filter(function(e) {
+          return (e.getDescription() || '').indexOf('サロン予約一元通知ツール') >= 0;
+        });
+        Logger.log('  そのうち自動登録: ' + auto.length + '件');
+      }
+    } catch (e) {
+      Logger.log('  ❌ エラー: ' + e.message);
+    }
+    Logger.log('');
+  });
+
+  Logger.log('💡 すべて (未設定) の場合は setupSiteCalendars() を1度実行してください。');
+  Logger.log('💡 すべて同じ ID だと「全サイトが1つのカレンダーに混ざって登録される」状態。');
+  Logger.log('   → これでも動くが、サイト別表示切替ができない。');
+  Logger.log('   → setupSiteCalendars() を実行すると4つに分離される。');
+}
+
+// ============================================================
+// 4. primary カレンダーに誤登録された自動イベントを掃除
+// ============================================================
+
+/**
+ * setupSiteCalendars 実行前に登録されてしまった自動イベントを
+ * primary カレンダー上で検出し、削除する。
+ *
+ * 「カレンダーに反映されてない」と感じた時に、実は primary に隠れていた、
+ * という現象に対処する。
+ *
+ * 削除されるのは「-- サロン予約一元通知ツール 自動登録 --」が説明文に
+ * 含まれる過去30日 〜 未来90日のイベントのみ。
+ */
+function cleanupPrimaryCalendarStrayEvents() {
+  Logger.log('========================================');
+  Logger.log('  primary カレンダーから自動登録イベントを掃除');
+  Logger.log('========================================\\n');
+
+  const cal = CalendarApp.getDefaultCalendar();
+  if (!cal) {
+    Logger.log('❌ primary カレンダーにアクセスできません');
+    return;
+  }
+  Logger.log('対象カレンダー: ' + cal.getName());
+
+  const now = new Date();
+  const fromDate = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+  const toDate   = new Date(now.getTime() + 90 * 24 * 3600 * 1000);
+  const events = cal.getEvents(fromDate, toDate);
+
+  let deleted = 0;
+  events.forEach(function(ev) {
+    const desc = ev.getDescription() || '';
+    if (desc.indexOf('サロン予約一元通知ツール') >= 0) {
+      Logger.log('削除: ' + ev.getTitle() + ' (' + ev.getStartTime().toLocaleString('ja-JP') + ')');
+      ev.deleteEvent();
+      deleted++;
+    }
+  });
+
+  Logger.log('');
+  Logger.log('✅ ' + deleted + '件のイベントを primary から削除しました。');
+  Logger.log('   この後 diagnoseAllSites() を再度実行すれば、正しいサイト別カレンダーに登録されます。');
+}
+
+// ============================================================
+// 5. 実環境の Gmail メールをパースして結果を表示（オーナー診断用）
+// ============================================================
+
+/**
+ * Gmail から最近の予約メール候補を取り出して、それぞれをパーサーに通し、
+ * 「何が取れて何が取れなかったか」を実行ログに表示する。
+ *
+ * 使い時:
+ *   「メール来てるのにLINE/カレンダーが反映されない」と感じた時、
+ *   このメールでパーサーが何を抽出できたかを実環境で確認する。
+ *
+ * 取得範囲: 過去3日以内・予約サイト系の送信元（CONFIG.GMAIL_SEARCH_QUERY 相当） / 最大5件
+ *
+ * 注意:
+ *   - 既読/未読・処理済みラベル問わず、最近のメールを舐める
+ *   - メール内容は実行ログに表示されるので機微情報含む可能性あり
+ */
+function diagnoseRecentEmails() {
+  Logger.log('========================================');
+  Logger.log('  実環境メール診断（過去3日 / 最大5件）');
+  Logger.log('========================================\\n');
+
+  // 4予約サイト系の送信元を広めに探す（is:unread / 処理済み問わず）
+  const query = 'from:(salonboard.com OR beauty.hotpepper.jp OR rakuten.co.jp OR minimodel.jp OR epark.jp) newer_than:3d';
+  Logger.log('検索クエリ: ' + query);
+
+  const threads = GmailApp.search(query, 0, 5);
+  Logger.log('ヒット: ' + threads.length + '件\\n');
+
+  if (threads.length === 0) {
+    Logger.log('該当メールなし。検索クエリを広めに直すか、デモ予約を入れてからもう一度実行してください。');
+    return;
+  }
+
+  threads.forEach(function(thread, i) {
+    const msg = thread.getMessages()[thread.getMessages().length - 1];
+    const subject = msg.getSubject() || '';
+    const body    = msg.getPlainBody() || '';
+    const from    = msg.getFrom() || '';
+
+    Logger.log('--- [' + (i + 1) + '] ' + subject + ' ---');
+    Logger.log('  From: ' + from);
+    Logger.log('  Date: ' + msg.getDate().toLocaleString('ja-JP'));
+
+    let r;
+    try {
+      r = parseReservationEmail(subject, body, from);
+    } catch (e) {
+      Logger.log('  ❌ パーサーエラー: ' + e.message);
+      return;
+    }
+
+    Logger.log('  検知サイト:    ' + r.site);
+    Logger.log('  予約番号:      ' + (r.reservationNo || '⚠️ 取得失敗'));
+    Logger.log('  お客様名:      ' + (r.customerName  || '⚠️ 取得失敗'));
+    Logger.log('  予約日時:      ' + (r.startAt ? r.startAt.toLocaleString('ja-JP') : '⚠️ 取得失敗'));
+    Logger.log('  所要時間:      ' + r.durationMin + '分');
+    Logger.log('  メニュー:      ' + (r.menu  || '(なし)'));
+    Logger.log('  担当:          ' + (r.staff || '(なし)'));
+    Logger.log('  電話番号:      ' + (r.phone || '(なし)'));
+    Logger.log('  備考:          ' + (r.note  || '(なし)'));
+    Logger.log('  キャンセル:    ' + r.isCancel);
+    Logger.log('  変更:          ' + r.isChange);
+
+    // パイプライン挙動の予測
+    const willSkip = !r.startAt && !r.customerName && !r.reservationNo;
+    const willLine = !willSkip;
+    const willCal  = !willSkip && !!r.startAt;
+    Logger.log('  → LINE通知:    ' + (willLine ? '送信される' : '⏭ スキップ（予約と判定できない）'));
+    Logger.log('  → カレンダー:  ' + (willCal  ? '登録される'  : '⏭ スキップ' + (!r.startAt ? '（日時取得失敗）' : '')));
+
+    Logger.log('');
+  });
+
+  Logger.log('💡 ⚠️取得失敗 が出ているフィールドがあれば、本社サポートにこの実行ログのスクショを送付してください。');
+  Logger.log('   メール本文の形式を確認して Parser.gs を更新します。');
+}
+
+// ============================================================
+// 6. 一発で全部直すワンショット関数（オーナー向け）
+// ============================================================
+
+/**
+ * 「カレンダーに反映されてない」「順序を間違えた」「やり直したい」時に
+ * 1関数で全部リセット & 再診断する。
+ *
+ * 実行順:
+ *   1. primary に誤登録された自動イベントを掃除
+ *   2. サイト別カレンダーが未作成なら作成
+ *   3. 4サイト分の診断を実行（LINE通知4通 + カレンダー4イベント登録）
+ *
+ * オーナーはこの1つの関数を選んで「▶ 実行」するだけ。
+ */
+function fixAndDiagnose() {
+  Logger.log('========================================');
+  Logger.log('  ワンショット修復 & 診断');
+  Logger.log('========================================');
+  Logger.log('処理1/3: primary カレンダーから誤登録イベントを掃除...\\n');
+  cleanupPrimaryCalendarStrayEvents();
+
+  Logger.log('\\n処理2/3: サイト別カレンダーの確認 & 作成...\\n');
+  setupSiteCalendars();
+
+  Logger.log('\\n処理3/3: 4サイト動作診断を実行...\\n');
+  diagnoseAllSites();
+
+  Logger.log('\\n========================================');
+  Logger.log('  完了！下記を確認してください:');
+  Logger.log('========================================');
+  Logger.log('① LINE に4種類の通知が届いた: [ホッペ][楽天][minimo][EPARK]');
+  Logger.log('② Googleカレンダー 5/10(日) に4イベント登録された');
+  Logger.log('③ Google Calendar の左サイドで 4サイトのカレンダーがONになっているか確認');
+}
+
+// ============================================================
+// 3. ワンショット ヘルスチェック
+// ============================================================
+
+/**
+ * ツール全体の健康診断。
+ * 設定の漏れや権限エラーを一覧で確認できる。
+ */
+function quickSelfCheck() {
+  Logger.log('========================================');
+  Logger.log('  ヘルスチェック');
+  Logger.log('========================================\\n');
+
+  const checks = [];
+
+  // 1. 必須CONFIG
+  checks.push(['LINE_TOKEN',  !!CONFIG.LINE_TOKEN && CONFIG.LINE_TOKEN.indexOf('ここに') < 0]);
+  checks.push(['LINE_TO_IDS', Array.isArray(CONFIG.LINE_TO_IDS) && CONFIG.LINE_TO_IDS.length > 0]);
+
+  // 2. Gmail検索クエリ
+  let q = '';
+  try { q = buildSearchQuery(); } catch (e) { q = '(エラー: ' + e.message + ')'; }
+  checks.push(['Gmail検索クエリ', q.length > 0]);
+  Logger.log('現在のGmail検索クエリ:\\n  ' + q + '\\n');
+
+  // 3. パーサー
+  let parserOK = true;
+  try {
+    const r = parseReservationEmail(
+      DIAG_FIXTURES.hotpepper.subject,
+      DIAG_FIXTURES.hotpepper.body,
+      DIAG_FIXTURES.hotpepper.from
+    );
+    parserOK = r.site === 'hotpepper' && !!r.customerName;
+  } catch (e) { parserOK = false; }
+  checks.push(['パーサー(ホッペ)', parserOK]);
+
+  // 4. カレンダーアクセス
+  let calOK = true;
+  try {
+    const id = resolveCalendarId('hotpepper');
+    const cal = CalendarApp.getCalendarById(id);
+    calOK = !!cal;
+  } catch (e) { calOK = false; }
+  checks.push(['カレンダーアクセス', calOK]);
+
+  // 結果表示
+  Logger.log('項目              結果');
+  checks.forEach(function(c) {
+    Logger.log(pad(c[0], 18) + (c[1] ? '✅' : '❌'));
+  });
+  Logger.log('');
+
+  const allOK = checks.every(function(c) { return c[1]; });
+  if (allOK) {
+    Logger.log('🎉 すべて OK。診断テストを実行してみる: diagnoseAllSites()');
+  } else {
+    Logger.log('⚠️  ❌ がある項目を先に修正してください。');
+  }
+}
+`,
+};
+
+// =============================================
+// ステップ定義
+// =============================================
+const STEPS = [
+  // STEP 0: スタート
+  () => `
+    <div class="hero-card">
+      <h2>🌸 セットアップを始めましょう</h2>
+      <p>このウィザードに従って進めれば、誰でも約60〜90分で導入完了します。</p>
+      <div class="welcome-features">
+        <div class="welcome-feature">🔗 必要なサイトに直接ジャンプ</div>
+        <div class="welcome-feature">📋 コードはワンクリックでコピー</div>
+        <div class="welcome-feature">💾 入力内容は自動保存</div>
+        <div class="welcome-feature">🆘 困ったらヘルプボタン</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📝 まず基本情報を入力</h3>
+      <div class="input-group">
+        <label>サロン名 <span style="color:#888; font-weight:normal;">(任意)</span></label>
+        <input type="text" id="input-salon" placeholder="例: ヘアサロン花子" value="${state.salonName}">
+        <div class="input-hint">ウィザード内で表示されるだけ。後から変えられます</div>
+      </div>
+      <div class="input-group">
+        <label>導入担当者 <span style="color:#888; font-weight:normal;">(任意)</span></label>
+        <input type="text" id="input-installer" placeholder="あなたのお名前" value="${state.installerName}">
+      </div>
+      <div class="input-group">
+        <label>契約プラン</label>
+        <select id="input-plan" style="width:100%; padding:10px 14px; border:2px solid #e0e0e0; border-radius:8px; font-size:14px; background:white;">
+          <option value="light" ${state.contractPlan === 'light' ? 'selected' : ''}>ライト（¥6,980 / 月200通）— 個人サロン・月予約100件以下</option>
+          <option value="standard" ${state.contractPlan === 'standard' ? 'selected' : ''}>スタンダードプレミアム（¥13,800 / 月5,000通・追加3機能つき）— 中規模・月予約100〜500件</option>
+          <option value="pro" ${state.contractPlan === 'pro' ? 'selected' : ''}>プロ（¥18,800 / 月30,000通）— 大規模・多店舗・個別案件</option>
+        </select>
+        <div class="input-hint">生成される Config.gs の月次クォータ上限値が自動で切り替わります。Config.gsの LINE_MONTHLY_QUOTA を後から手動変更も可能。</div>
+      </div>
+    </div>
+
+    <div class="alert alert-tip">
+      画面右下の「次へ」ボタンを押すと進みます。サイドバーから直接ジャンプも可能です。
+    </div>
+
+    <div class="nav-buttons">
+      <span></span>
+      <button class="btn btn-primary btn-large" onclick="
+        state.salonName = document.getElementById('input-salon').value;
+        state.installerName = document.getElementById('input-installer').value;
+        state.contractPlan = document.getElementById('input-plan').value;
+        save(); goNext();">スタート →</button>
+    </div>
+  `,
+
+  // STEP 1: Gmail準備
+  () => `
+    <h2>📧 予約通知用Gmailの準備</h2>
+    <div class="step-meta">
+      <span>⏱ 所要 5〜15分</span>
+      <span>📍 サロンボード / Gmail</span>
+    </div>
+    <div class="lead">このツールは「Gmailに届くホットペッパー予約メール」を読んで動きます。<b>ホットペッパーの通知先がGmailになっていることが大前提</b>。まずそこを確認・整備します。</div>
+
+    <div class="alert alert-warn">
+      <b>重要</b>: ホットペッパー予約通知の送信先メアドが <code>@gmail.com</code> 以外（ドコモ、au、Yahoo、iCloudなど）の場合、このツールは動きません。<br>
+      その場合は下のステップ②③で <b>新しいGmailを作って通知先をそれに変更</b> します。
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">1</div>
+      <h3>サロンボードで現在の通知先メアドを確認</h3>
+      <p>サロンボードにログイン → 「店舗設定」「メール設定」など、予約通知メールの送信先アドレスが設定されている画面を開く。</p>
+      <a href="https://salonboard.com/" target="_blank" rel="noopener" class="btn btn-link">🔗 サロンボードを開く</a>
+      <div class="alert alert-tip">
+        通知先が <b><code>@gmail.com</code> のアドレス</b> なら、この後の②③はスキップしてOK。確認だけして次へ進めます。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">2</div>
+      <h3>(必要な場合) 予約通知用Gmailを新規作成</h3>
+      <p>通知先がGmailではない場合、新しくGmailアカウントを作ります。サロン専用にすると後の管理がラク。</p>
+      <a href="https://accounts.google.com/signup" target="_blank" rel="noopener" class="btn btn-link">🔗 Gmailアカウントを作成</a>
+      <div class="alert alert-tip">
+        <b>おすすめのアドレス例:</b><br>
+        ・<code>${state.salonName ? state.salonName.replace(/\\s/g,'').toLowerCase() : 'サロン名'}.yoyaku@gmail.com</code><br>
+        ・<code>${state.salonName ? state.salonName.replace(/\\s/g,'').toLowerCase() : 'サロン名'}.notify@gmail.com</code>
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">3</div>
+      <h3>(必要な場合) サロンボードの通知先を新Gmailに変更</h3>
+      <p>サロンボードの設定画面に戻り、予約通知メールの送信先を新しく作ったGmailアドレスに変更 → 保存。</p>
+      <a href="https://salonboard.com/" target="_blank" rel="noopener" class="btn btn-link">🔗 サロンボードを開く</a>
+      <div class="alert alert-warn">
+        変更後は <b>必ずテスト予約を1件入れて</b>、新しいGmailの受信トレイにホットペッパーから予約通知メールが届くことを確認してください。ここが届かないと後のステップは全て無意味になります。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">4</div>
+      <h3>使うGmailアドレスを記録</h3>
+      <div class="input-group">
+        <label>予約通知が届くGmailアドレス</label>
+        <input type="text" id="input-gmail" placeholder="例: salon.yoyaku@gmail.com" value="${state.gmailAddress || ''}" style="font-family: monospace;">
+        <div class="input-hint">STEP 7のGASプロジェクト作成で、<b>このアドレスのGoogleアカウントでログイン</b>します。忘れないように記録。</div>
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">5</div>
+      <h3>確認</h3>
+      <div class="checklist">
+        <label><input type="checkbox" data-key="stepGmail-1"><span>ホットペッパー予約通知の送信先メアドを確認した</span></label>
+        <label><input type="checkbox" data-key="stepGmail-2"><span>そのメアドは <code>@gmail.com</code> である（または新規作成して切替済み）</span></label>
+        <label><input type="checkbox" data-key="stepGmail-3"><span>そのGmailの受信トレイにホットペッパーからのテストメールが届くことを確認した</span></label>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+      <button class="btn btn-primary" onclick="
+        const el = document.getElementById('input-gmail');
+        if (el) state.gmailAddress = el.value.trim();
+        save(); goNext();">次へ：送信元確認 →</button>
+    </div>
+  `,
+
+  // STEP 2: 予約メール送信元の設定
+  () => {
+    // 既存の fromAddress から各サイトのチェック状態を判定
+    const fa = (state.fromAddress || '').toLowerCase();
+    const wasUserEdited = !!state.fromAddress;
+    const checkedHP = wasUserEdited ? (fa.indexOf('hotpepper.jp') >= 0 || fa.indexOf('salonboard.com') >= 0) : true;
+    const checkedRK = fa.indexOf('rakuten.co.jp') >= 0;
+    const checkedMI = fa.indexOf('minimodel.jp') >= 0;
+    const checkedEP = fa.indexOf('epark.jp') >= 0;
+    // 各サイトの保存済み入力値（state.siteAddrs があれば優先、なければデフォルト）
+    const sa = state.siteAddrs || {};
+    const valHP = sa.hotpepper || 'beauty.hotpepper.jp salonboard.com';
+    const valRK = sa.rakuten   || 'beauty.rakuten.co.jp';
+    const valMI = sa.minimo    || 'minimodel.jp';
+    const valEP = sa.epark     || 'beauty.epark.jp';
+    return `
+    <h2>📨 予約メールの送信元を設定</h2>
+    <div class="step-meta">
+      <span>⏱ 所要 30秒</span>
+      <span>📍 このページで完結</span>
+    </div>
+    <div class="lead"><b>サロンが使ってる予約サイトをチェック</b>するだけ。各サイトのドメインは事前入力済みなので、そのまま「次へ」を押せばOK。デモ予約を入れる必要なし。</div>
+
+    <div class="card numbered">
+      <div class="card-num">1</div>
+      <h3>サロンが使っている予約サイトをチェック</h3>
+      <p>複数チェック可。<b>使っていないサイトは外してOK</b>。チェックを外すとそのサイトの送信元は無視されます。</p>
+
+      <div class="site-row-list">
+
+        <!-- ホットペッパー -->
+        <div class="site-row${checkedHP ? ' checked' : ''}" data-site-row="hotpepper">
+          <label class="site-row-header">
+            <input type="checkbox" data-site="hotpepper"${checkedHP ? ' checked' : ''}>
+            <div class="site-body">
+              <div class="site-name hotpepper">🔴 ホットペッパービューティー</div>
+              <div class="site-tag">最も多くのサロンが使う・サロンボード経由</div>
+            </div>
+          </label>
+          <div class="site-input-wrap">
+            <label class="site-input-label">送信元ドメイン or メールアドレス</label>
+            <input type="text" class="site-input" data-site-input="hotpepper" value="${valHP}" placeholder="beauty.hotpepper.jp salonboard.com">
+            <div class="site-input-hint">複数は半角スペース区切り。ドメインのみでもメールアドレス全形でも可。</div>
+          </div>
+        </div>
+
+        <!-- 楽天ビューティー -->
+        <div class="site-row${checkedRK ? ' checked' : ''}" data-site-row="rakuten">
+          <label class="site-row-header">
+            <input type="checkbox" data-site="rakuten"${checkedRK ? ' checked' : ''}>
+            <div class="site-body">
+              <div class="site-name rakuten">🌸 楽天ビューティー</div>
+              <div class="site-tag">楽天IDで予約してくる客層</div>
+            </div>
+          </label>
+          <div class="site-input-wrap">
+            <label class="site-input-label">送信元ドメイン or メールアドレス</label>
+            <input type="text" class="site-input" data-site-input="rakuten" value="${valRK}" placeholder="beauty.rakuten.co.jp">
+            <div class="site-input-hint">楽天ビューティー側からの予約通知メールの送信元</div>
+          </div>
+        </div>
+
+        <!-- minimo -->
+        <div class="site-row${checkedMI ? ' checked' : ''}" data-site-row="minimo">
+          <label class="site-row-header">
+            <input type="checkbox" data-site="minimo"${checkedMI ? ' checked' : ''}>
+            <div class="site-body">
+              <div class="site-name minimo">🟢 minimo（ミニモ）</div>
+              <div class="site-tag">スタイリスト指名予約・若年層中心</div>
+            </div>
+          </label>
+          <div class="site-input-wrap">
+            <label class="site-input-label">送信元ドメイン or メールアドレス</label>
+            <input type="text" class="site-input" data-site-input="minimo" value="${valMI}" placeholder="minimodel.jp">
+            <div class="site-input-hint">minimoからの予約通知メールの送信元</div>
+          </div>
+        </div>
+
+        <!-- EPARK Beauty -->
+        <div class="site-row${checkedEP ? ' checked' : ''}" data-site-row="epark">
+          <label class="site-row-header">
+            <input type="checkbox" data-site="epark"${checkedEP ? ' checked' : ''}>
+            <div class="site-body">
+              <div class="site-name epark">🔵 EPARK Beauty</div>
+              <div class="site-tag">EPARKポイント連動・全国対応</div>
+            </div>
+          </label>
+          <div class="site-input-wrap">
+            <label class="site-input-label">送信元ドメイン or メールアドレス</label>
+            <input type="text" class="site-input" data-site-input="epark" value="${valEP}" placeholder="beauty.epark.jp">
+            <div class="site-input-hint">EPARK Beautyからの予約通知メールの送信元</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">2</div>
+      <h3>確認：送信元アドレスがすべてのサイトで揃ってればOK</h3>
+      <p>「次へ」を押すと、チェック済みサイトの送信元アドレスをすべて結合して保存します（半角スペース区切り）。</p>
+      <div class="alert alert-tip">
+        <b>合算プレビュー</b>:<br>
+        <code id="preview-combined" style="font-size: 13px;"></code>
+      </div>
+      <div class="alert alert-warn">
+        ここでチェックを入れたサイト以外から来たメールは全部無視されます。お客様の他のメールが誤って処理される心配なし。
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+      <button class="btn btn-primary" onclick="commitSiteAddrsAndNext()">次へ：LINE作成 →</button>
+    </div>
+  `;
+  },
+
+  // STEP 3: LINE作成
+  () => `
+    <h2>📱 LINE公式アカウントを作る</h2>
+    <div class="step-meta">
+      <span>⏱ 所要 10分</span>
+      <span>📍 ブラウザ操作</span>
+    </div>
+    <div class="lead">サロン専用のLINE公式アカウントを作成します。これがスタッフへの通知元になります。</div>
+
+    <div class="card numbered">
+      <div class="card-num">1</div>
+      <h3>LINEヤフー for Business にログイン</h3>
+      <p>下のボタンを押すと、LINEヤフー for Business（旧 LINE Business ID）のログインページが新しいタブで開きます。</p>
+      <a href="https://www.lycbiz.com/jp/login/" target="_blank" rel="noopener" class="btn btn-link">🔗 LINEヤフー for Business を開く</a>
+      <p style="margin-top:8px;">「LINEアカウントで登録」を選んでお客様のスマホでQR読み取りが一番簡単です。</p>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">2</div>
+      <h3>公式アカウントを作成</h3>
+      <p>登録できたら、LINE Official Account Manager にアクセス → 「アカウント作成」をクリック。</p>
+      <a href="https://manager.line.biz/" target="_blank" rel="noopener" class="btn btn-link">🔗 LINE Official Account Manager を開く</a>
+
+      <div class="alert alert-tip">
+        <b>入力内容の例:</b><br>
+        ・アカウント名: <code>${state.salonName || '(サロン名)'} 予約通知</code><br>
+        ・業種大: 美容・サロン<br>
+        ・業種小: 美容室・ヘアサロン
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">3</div>
+      <h3>確認</h3>
+      <div class="checklist">
+        <label><input type="checkbox" data-key="step1-1"><span>LINE Business IDのアカウントが作れた</span></label>
+        <label><input type="checkbox" data-key="step1-2"><span>公式アカウントが作れた</span></label>
+        <label><input type="checkbox" data-key="step1-3"><span>Official Account Managerにログインできている</span></label>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+      <button class="btn btn-primary" onclick="goNext()">次へ：トークン取得 →</button>
+    </div>
+  `,
+
+  // STEP 4: トークン取得
+  () => `
+    <h2>🔑 チャネルアクセストークンを取得</h2>
+    <div class="step-meta">
+      <span>⏱ 所要 5分</span>
+      <span>📍 LINE Developers</span>
+    </div>
+    <div class="lead">プログラムから通知を送るための「鍵」を取得します。</div>
+
+    <div class="card numbered">
+      <div class="card-num">1</div>
+      <h3>Messaging APIを有効化</h3>
+      <p>Official Account Manager で：設定 → Messaging API → 「Messaging APIを利用する」をON</p>
+      <a href="https://manager.line.biz/" target="_blank" rel="noopener" class="btn btn-link">🔗 Account Manager を開く</a>
+      <p style="margin-top:8px;">プロバイダーは新規作成 or 既存どちらでもOK。</p>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">2</div>
+      <h3>トークンを発行</h3>
+      <p>LINE Developers コンソールに自動移動 → 「Messaging API設定」タブ → 「チャネルアクセストークン（長期）」の「発行」ボタン</p>
+      <a href="https://developers.line.biz/console/" target="_blank" rel="noopener" class="btn btn-link">🔗 LINE Developers を開く</a>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">3</div>
+      <h3>トークンを下のフォームに貼り付け</h3>
+      <div class="input-group">
+        <label>チャネルアクセストークン（長期）</label>
+        <input type="text" id="input-token" placeholder="発行されたトークンをここに貼り付け" value="${state.lineToken}" style="font-family: monospace;">
+        <div class="input-hint" id="token-hint">通常 100文字以上の長い英数字記号の文字列です</div>
+      </div>
+
+      <div class="alert alert-warn">
+        トークンの前後に余分な空白が入らないよう注意。コピペ時に確認してください。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">4</div>
+      <h3>応答設定をオフに</h3>
+      <p>LINE Official Account Managerに戻って：</p>
+      <ul style="padding-left:24px; font-size:14px; color:#555;">
+        <li>「設定」→「応答設定」→ <b>応答メッセージ: オフ</b></li>
+        <li>同画面で <b>Webhook: オン</b></li>
+      </ul>
+      <a href="https://manager.line.biz/" target="_blank" rel="noopener" class="btn btn-link">🔗 Account Manager を開く</a>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+      <button class="btn btn-primary" onclick="
+        state.lineToken = document.getElementById('input-token').value.trim();
+        save(); goNext();">次へ：友だち追加 →</button>
+    </div>
+  `,
+
+  // STEP 5: スタッフ追加
+  () => `
+    <h2>👥 スタッフ全員を友だち追加</h2>
+    <div class="step-meta">
+      <span>⏱ 所要 5分</span>
+      <span>📍 各自のスマホ</span>
+    </div>
+    <div class="lead">通知を受け取るスタッフ全員に、公式アカウントを友だち追加してもらいます。</div>
+
+    <div class="card numbered">
+      <div class="card-num">1</div>
+      <h3>QRコードを表示</h3>
+      <p>LINE Developers の「Messaging API設定」タブを下にスクロール → QRコードが表示されています</p>
+      <a href="https://developers.line.biz/console/" target="_blank" rel="noopener" class="btn btn-link">🔗 LINE Developers を開く</a>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">2</div>
+      <h3>スタッフ全員にお願い</h3>
+      <div class="talk">
+        <div class="talk-text">
+          「では、スタッフの皆さん全員でこのQRコードを読み取っていただけますか？<br>
+           LINEアプリを開いて → 右上のホーム → 友だち追加 → QRコード で読めます。<br>
+           読み取れたら『追加』を押してください」
+        </div>
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">3</div>
+      <h3>確認</h3>
+      <div class="checklist">
+        <label><input type="checkbox" data-key="step3-1"><span>全スタッフが公式アカウントを友だち追加した</span></label>
+        <label><input type="checkbox" data-key="step3-2"><span>友だち追加できないスタッフはいない</span></label>
+      </div>
+    </div>
+
+    <div class="alert alert-tip">
+      シャイなスタッフがいたら、こちらから「○○さんも大丈夫ですか？」と一人一人声かけしましょう。
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+      <button class="btn btn-primary" onclick="goNext()">次へ：グループ作成 →</button>
+    </div>
+  `,
+
+  // STEP 6: グループ作成
+  () => `
+    <h2>💬 LINEグループに公式アカウントを招待（任意）</h2>
+    <div class="step-meta">
+      <span>⏱ 所要 5分</span>
+      <span>📍 オーナーのスマホ</span>
+    </div>
+    <div class="lead">予約通知が届くLINEグループを作って、公式アカウントを招待します。</div>
+
+    <div class="alert alert-tip">
+      <b>このステップは「任意」です。</b><br>
+      個人LINEで通知を受け取るだけでOKなら <b>スキップして次のSTEPへ</b> 進んでください。<br>
+      複数人のスタッフが受け取る場合のみ、以下を実施します。
+    </div>
+
+    <div class="alert alert-warn">
+      <b>グループ運用にする場合の事前条件</b>:<br>
+      ① LINE Official Account Manager →「設定」→「応答設定」で <b>「チャット」をオフ</b>（Botモードに切替）<br>
+      ② LINE Developers の「Messaging API設定」で <b>「グループ・複数人トークへの参加を許可する」をオン</b><br>
+      この2つができていないと、公式アカウントをグループに招待しても自動退会します。
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">1</div>
+      <h3>「グループ参加」を許可する設定</h3>
+      <p>LINE Developers の「Messaging API設定」タブで：</p>
+      <p><b>「グループ・複数人トークへの参加を許可する」</b> を <b>オン</b> に</p>
+      <a href="https://developers.line.biz/console/" target="_blank" rel="noopener" class="btn btn-link">🔗 LINE Developers を開く</a>
+      <div class="alert alert-warn">この設定を忘れると、次のステップで招待できません。</div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">2</div>
+      <h3>LINEグループを作る（または既存利用）</h3>
+      <p>オーナーのスマホで：</p>
+      <ul style="padding-left:24px; font-size:14px; color:#555;">
+        <li>既にスタッフ用LINEグループ → そのまま使う</li>
+        <li>無い → 新規グループ「予約通知」を作成（メンバー: スタッフ全員）</li>
+      </ul>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">3</div>
+      <h3>グループに公式アカウントを招待</h3>
+      <p>スマホのLINEで：</p>
+      <ol style="padding-left:24px; font-size:14px; color:#555;">
+        <li>予約通知グループのトーク画面を開く</li>
+        <li>右上メニュー → メンバー → 招待</li>
+        <li><b>${state.salonName || '(サロン名)'} 予約通知</b> を選択 → 招待</li>
+      </ol>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">4</div>
+      <h3>テストメッセージを1回送る</h3>
+      <div class="talk">
+        <div class="talk-text">「<b>必ずグループのトーク画面を開いて</b>、グループ内で『テスト』と1回送ってください。<br>個人チャット（公式アカウントとの1対1）に送るとSTEP 5でグループIDが取得できません」</div>
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">5</div>
+      <h3>確認</h3>
+      <div class="checklist">
+        <label><input type="checkbox" data-key="step4-1"><span>「グループ参加を許可」をオンにした</span></label>
+        <label><input type="checkbox" data-key="step4-2"><span>LINEグループに公式アカウントを招待できた</span></label>
+        <label><input type="checkbox" data-key="step4-3"><span>グループでテストメッセージを送信した</span></label>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+      <button class="btn btn-primary" onclick="goNext()">次へ：グループID取得 →</button>
+    </div>
+  `,
+
+  // STEP 7: 通知先ID取得
+  () => `
+    <h2>🔑 通知先IDを取得（個人ID推奨）</h2>
+    <div class="step-meta">
+      <span>⏱ 所要 5〜10分</span>
+      <span>📍 LINE / webhook.site</span>
+    </div>
+    <div class="lead">どこに予約通知を送るかを決めます。<b>まず個人LINEで動作確認</b>するのが最短ルート。グループ通知は後から拡張できます。</div>
+
+    <div class="alert alert-tip">
+      <b>結論ルート</b>: ①自分のLINEで公式アカウントを友だち追加 → ②個人チャットで「テスト」送信 → ③webhook.siteに届いたJSONの <code>userId</code> をコピーして下のフォームに貼る。これだけ。
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">1</div>
+      <h3>webhook.site を開いてURLをコピー</h3>
+      <p>新しいタブで <a href="https://webhook.site/" target="_blank" rel="noopener">webhook.site</a> を開く。<br>「Your unique URL」として表示されている <code>https://webhook.site/xxxxxxxx...</code> をコピー。</p>
+      <a href="https://webhook.site/" target="_blank" rel="noopener" class="btn btn-link">🔗 webhook.site を開く</a>
+      <div class="alert alert-tip">
+        既に開いていてレート制限（429）に達している場合は、ページ右上の「+ New」をクリックして新しいURLを発行してください。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">2</div>
+      <h3>LINE Developers に Webhook URL を設定</h3>
+      <p>LINE Developers Console → 該当チャネル → 「Messaging API設定」タブで：</p>
+      <ol style="padding-left:24px; font-size:14px; color:#555;">
+        <li>Webhook URL欄に①でコピーしたURLを貼り付け → 「更新」</li>
+        <li>「Webhookの利用」を <b>オン</b>（緑のトグル）</li>
+      </ol>
+      <a href="https://developers.line.biz/console/" target="_blank" rel="noopener" class="btn btn-link">🔗 LINE Developers を開く</a>
+      <div class="alert alert-tip">
+        「検証」ボタンは押さなくてOK（押すとレート制限を消費するだけ）。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">3</div>
+      <h3>自分のスマホで公式アカウントを友だち追加</h3>
+      <p>LINE Developers の「Messaging API設定」タブを下にスクロール → 表示されているQRコードを、<b>自分のスマホのLINE</b>で読み込んで友だち追加。</p>
+      <div class="alert alert-tip">
+        既に友だち追加済みならスキップOK。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">4</div>
+      <h3>個人チャットで「テスト」と送信</h3>
+      <p>友だち追加した公式アカウント <b>${state.salonName || '(サロン名)'} 予約通知</b> の <b>1対1個人チャット画面</b> を開いて、「テスト」と1回送る。</p>
+      <div class="alert alert-warn">
+        ここで送るのは <b>個人チャット</b>（自分と公式アカウントの2人だけのトーク）。グループには送らないでOK。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">5</div>
+      <h3>webhook.site の画面に戻って userId をコピー</h3>
+      <p>左側のリストに新しいPOSTリクエストが届いているはず。それをクリックして表示されたJSONから <code>"userId": "U..."</code> をコピー。</p>
+      <div class="code-block highlight-bg">{
+  "events": [{
+    "source": {
+      "type": "user",
+      <span style="background:#ffeb3b; padding:2px 4px; border-radius:3px;">"userId": "Uabcdef1234567890..."</span>  ← これをコピー
+    }
+  }]
+}</div>
+      <div class="alert alert-warn">
+        <b>events が空配列 <code>[]</code> の場合</b>: LINE Official Account Manager（manager.line.biz）→「設定」→「応答設定」で「チャット」をオフにし、「Webhook」をオンにしてから、もう一度「テスト」を送り直してください。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">6</div>
+      <h3>下のフォームに貼り付け</h3>
+      <div class="input-group">
+        <label>通知先ID（個人ユーザーID U... または グループID C...）</label>
+        <input type="text" id="input-groupid" placeholder="U... (個人) または C... (グループ)" value="${state.groupId}" style="font-family: monospace;">
+        <div class="input-hint" id="groupid-hint">通常 'U'(個人) または 'C'(グループ) から始まる32文字程度の英数字</div>
+      </div>
+      <div class="alert alert-tip">
+        LINE APIは userId でも groupId でも同じpush通知が動きます。個人IDで動作確認 → 後でグループIDに差し替え、という運用も可。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">7</div>
+      <h3>Webhook URL を空欄に戻す（重要）</h3>
+      <p>userId が取れたら webhook.site はもう不要。LINE Developers の Webhook URL を <b>空欄にして「更新」</b>、「Webhookの利用」も<b>オフ</b>にする。</p>
+      <a href="https://developers.line.biz/console/" target="_blank" rel="noopener" class="btn btn-link">🔗 LINE Developers を開く</a>
+      <div class="alert alert-warn">
+        これをやらないと webhook.site のレート制限（429）に達して、LINEが「botが応答しない」と判定し、不具合の原因になります。
+      </div>
+    </div>
+
+    <details style="margin: 16px 0; padding: 12px 16px; background: #f5f5f7; border-radius: 8px;">
+      <summary style="cursor: pointer; font-weight: bold; color: #555; font-size: 14px;">▶ 複数人のスタッフに通知したい場合（グループ運用・任意）</summary>
+      <div style="margin-top: 12px; font-size: 13px; color: #555; line-height: 1.7;">
+        個人IDで動作確認できたら、後からグループ運用に拡張できます。手順：
+        <ol style="padding-left: 20px; margin-top: 8px;">
+          <li>LINE Official Account Manager → 「設定」→「応答設定」で <b>「チャット」をオフ</b>（Botモードに切替）</li>
+          <li>LINE Developers の「Messaging API設定」で <b>「グループ・複数人トークへの参加を許可する」をオン</b></li>
+          <li>LINEアプリで予約通知用のグループを作り、スタッフ全員と公式アカウントを招待</li>
+          <li>STEP 7 の手順をもう一度なぞるが、④で <b>個人チャットではなくグループのトーク画面で</b>「テスト」と送る</li>
+          <li>webhook.site で <code>"groupId": "C..."</code> を確認 → 上のフォームのIDを差し替え</li>
+        </ol>
+        <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-left: 3px solid #ffc107; border-radius: 4px;">
+          <b>または</b>: Config.gs の <code>LINE_TO_IDS</code> に複数の userId を並べることで、グループを使わずに複数人に同時通知も可能。<br>
+          例: <code>LINE_TO_IDS: ['U111...', 'U222...', 'U333...']</code>
+        </div>
+      </div>
+    </details>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+      <button class="btn btn-primary" onclick="
+        state.groupId = document.getElementById('input-groupid').value.trim();
+        save(); goNext();">次へ：GAS作成 →</button>
+    </div>
+  `,
+
+  // STEP 8: GASプロジェクト作成
+  () => `
+    <h2>⚙️ Google Apps Script プロジェクトを作成</h2>
+    <div class="step-meta">
+      <span>⏱ 所要 5分</span>
+      <span>📍 script.google.com</span>
+    </div>
+    <div class="lead">予約メールを処理するプログラムを置くプロジェクトを作ります。</div>
+
+    <div class="alert alert-warn">
+      ここから先は <b>STEP 1 で準備した「予約通知用Gmail」のGoogleアカウント</b> でログインします。${state.gmailAddress ? '<br>記録したアドレス: <code>' + state.gmailAddress + '</code>' : '<br>STEP 1 でアドレスを記録していない場合、サイドバーから戻って入力してください。'}
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">1</div>
+      <h3>Google Apps Script を開く</h3>
+      <p>STEP 1 で記録した <b>予約通知用Gmail</b> のGoogleアカウントで以下にアクセス：${state.gmailAddress ? '<br><code>' + state.gmailAddress + '</code>' : ''}</p>
+      <a href="https://script.google.com/" target="_blank" rel="noopener" class="btn btn-link">🔗 Google Apps Script を開く</a>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">2</div>
+      <h3>「新しいプロジェクト」をクリック</h3>
+      <p>左上の「+ 新しいプロジェクト」ボタンを押す。</p>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">3</div>
+      <h3>プロジェクト名を変更</h3>
+      <p>画面上部の「無題のプロジェクト」をクリック → <b>${state.salonName ? state.salonName + ' ' : ''}ホットペッパー予約通知</b> に変更</p>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">4</div>
+      <h3>デフォルトの Code.gs を削除</h3>
+      <p>左サイドバーの「Code.gs」の右側の「⋮」→「削除」</p>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">5</div>
+      <h3>確認</h3>
+      <div class="checklist">
+        <label><input type="checkbox" data-key="step6-1"><span>script.google.comにお客様アカウントでログインできた</span></label>
+        <label><input type="checkbox" data-key="step6-2"><span>新しいプロジェクトを作成した</span></label>
+        <label><input type="checkbox" data-key="step6-3"><span>プロジェクト名を変更した</span></label>
+        <label><input type="checkbox" data-key="step6-4"><span>Code.gsを削除した（左サイドバーが空）</span></label>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+      <button class="btn btn-primary" onclick="goNext()">次へ：6ファイル作成 →</button>
+    </div>
+  `,
+
+  // STEP 9: 5ファイル貼り付け
+  () => {
+    const fileNames = ['Config.gs','Parser.gs','Line.gs','Calendar.gs','Main.gs','Diagnostics.gs'];
+    return `
+      <h2>📋 6つのファイルを作って貼り付け</h2>
+      <div class="step-meta">
+        <span>⏱ 所要 10分</span>
+        <span>📍 GASエディタ</span>
+      </div>
+      <div class="lead">下のタブから順に、6つのファイルをGASエディタに作成して、コードをコピー＆貼り付けします。<br>最後の <code>Diagnostics.gs</code> は4サイトの動作診断ツール。STEP 11 でこれを使って動作確認します。</div>
+
+      <div class="alert alert-tip">
+        <b>各ファイルの作成手順:</b><br>
+        ① 左サイドバーの「ファイル ＋」→「スクリプト」<br>
+        ② ファイル名を入力（例: <code>Config</code>。「.gs」は自動で付く）<br>
+        ③ 開いたファイルの内容をすべて選択(Ctrl+A) → 削除<br>
+        ④ 下の「コピー」ボタンを押してから貼り付け(Ctrl+V)<br>
+        ⑤ 保存 (Ctrl+S または 💾アイコン)
+      </div>
+
+      <div class="card">
+        <div class="file-tabs" id="file-tabs">
+          ${fileNames.map((n, i) => `<button data-file="${n}" class="${i===0?'active':''}" onclick="showFile('${n}')">${n}</button>`).join('')}
+        </div>
+
+        ${fileNames.map((n, i) => `
+          <div id="file-${n}" class="${i===0?'':'hidden'}" style="margin-top:16px;">
+            <p style="font-size:13px; color:#666; margin-bottom:8px;">
+              ファイル名: <code>${n.replace('.gs','')}</code>（拡張子.gsは自動）
+            </p>
+            <div class="code-block-wrap">
+              <button class="btn btn-copy code-block-copy" onclick="copyCode('code-${n}', this)">📋 コピー</button>
+              <pre class="code-block" id="code-${n}">${escapeHtml(GAS_FILES[n](state.lineToken, state.groupId, state.fromAddress, state.contractPlan))}</pre>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="card">
+        <h3>✅ 5ファイル全部できたかチェック</h3>
+        <div class="checklist">
+          ${fileNames.map(n => `
+            <label><input type="checkbox" data-key="step7-${n}"><span>${n} を作成・貼り付け・保存した</span></label>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="alert alert-warn">
+        Config.gs には既にあなたのトークンとグループIDが埋め込まれています。<br>
+        手で書き換える必要はありません。コピペするだけでOK。
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+        <button class="btn btn-primary" onclick="goNext()">次へ：設定確認 →</button>
+      </div>
+    `;
+  },
+
+  // STEP 10: 設定確認
+  () => {
+    const tokenStatus = state.lineToken && state.lineToken.length > 50 ? 'valid' : 'invalid';
+    const groupIdStatus = state.groupId && /^[CU]/i.test(state.groupId) ? 'valid' : 'invalid';
+    return `
+      <h2>🔍 設定値の確認</h2>
+      <div class="step-meta">
+        <span>⏱ 所要 2分</span>
+        <span>📍 確認のみ</span>
+      </div>
+      <div class="lead">Config.gs に正しい値が入ったか確認しましょう。</div>
+
+      <div class="card">
+        <h3>📋 設定状態</h3>
+        <table style="width:100%; border-collapse:collapse;">
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:8px 4px; font-weight:bold; width:40%;">サロン名</td>
+            <td style="padding:8px 4px;">${state.salonName || '<span style="color:#888;">(未入力)</span>'}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:8px 4px; font-weight:bold;">契約プラン</td>
+            <td style="padding:8px 4px;">
+              ${({ light: 'ライト（月200通）', standard: 'スタンダードプレミアム（月5,000通）', pro: 'プロ（月30,000通）' })[state.contractPlan] || 'ライト（月200通）'}
+            </td>
+          </tr>
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:8px 4px; font-weight:bold;">LINEトークン</td>
+            <td style="padding:8px 4px; font-family:monospace; font-size:11px;">
+              ${state.lineToken
+                ? `<span style="color:#34c759;">✓ 入力済み</span> (${state.lineToken.length}文字)<br><span style="color:#888;">${state.lineToken.substring(0, 30)}...</span>`
+                : '<span style="color:#ff3b30;">✗ 未入力</span>'}
+            </td>
+          </tr>
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:8px 4px; font-weight:bold;">グループID</td>
+            <td style="padding:8px 4px; font-family:monospace;">
+              ${state.groupId
+                ? /^[CU]/i.test(state.groupId)
+                  ? `<span style="color:#34c759;">✓ ${state.groupId.startsWith('C') ? 'グループID' : '個人ユーザーID'}</span><br><span style="color:#888; font-size:12px;">${state.groupId}</span>`
+                  : `<span style="color:#ff3b30;">✗ 形式が違うかも (C か U で始まるはず)</span><br><span style="color:#888; font-size:12px;">${state.groupId}</span>`
+                : '<span style="color:#ff3b30;">✗ 未入力</span>'}
+            </td>
+          </tr>
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:8px 4px; font-weight:bold;">予約Gmail</td>
+            <td style="padding:8px 4px; font-family:monospace; font-size:12px;">
+              ${state.gmailAddress
+                ? `<span style="color:#34c759;">✓</span> ${state.gmailAddress}`
+                : '<span style="color:#ff3b30;">✗ 未入力（STEP 1）</span>'}
+            </td>
+          </tr>
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:8px 4px; font-weight:bold;">予約メール送信元</td>
+            <td style="padding:8px 4px; font-family:monospace; font-size:12px;">
+              ${state.fromAddress
+                ? `<span style="color:#34c759;">✓</span> ${state.fromAddress}`
+                : '<span style="color:#888;">(未入力。デフォルトの salonboard.com / beauty.hotpepper.jp を使用)</span>'}
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      ${tokenStatus === 'invalid' || groupIdStatus === 'invalid' ? `
+        <div class="alert alert-error">
+          一部の値が正しく入っていない可能性があります。サイドバーから戻って確認してください。
+        </div>
+      ` : `
+        <div class="alert alert-success">
+          設定値は正常に入力されています！次のステップに進みましょう。
+        </div>
+      `}
+
+      <div class="card">
+        <h3>📄 生成された Config.gs（参考）</h3>
+        <p style="font-size:13px; color:#666;">既にSTEP 7で貼り付け済みのはずです。ここでの再コピーは不要。</p>
+        <div class="code-block-wrap">
+          <button class="btn btn-copy code-block-copy" onclick="copyCode('config-preview', this)">📋 コピー</button>
+          <pre class="code-block" id="config-preview">${escapeHtml(GAS_FILES['Config.gs'](state.lineToken, state.groupId, state.fromAddress, state.contractPlan))}</pre>
+        </div>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+        <button class="btn btn-primary" onclick="goNext()">次へ：動作テスト →</button>
+      </div>
+    `;
+  },
+
+  // STEP 11: 動作テスト
+  () => `
+    <h2>🧪 動作テスト（3つの関数を実行）</h2>
+    <div class="step-meta">
+      <span>⏱ 所要 8分</span>
+      <span>📍 GASエディタ</span>
+    </div>
+    <div class="lead">GASエディタで3つのテスト関数を順に実行します。<br>① testLine（LINE通知テスト）<br>② installTriggers（1分おき自動実行ON）<br>③ <b>fixAndDiagnose</b>（4サイトカレンダー作成 + 一括動作診断 を1発で実行）</div>
+
+    <!-- =================================================== -->
+    <!-- アップデート用: 既存導入先がコードを差し替えるためのワンクリックパネル -->
+    <!-- =================================================== -->
+    <div style="background: linear-gradient(135deg, #fff5e6, #fff8eb); border: 3px solid #ff9800; border-radius: 12px; padding: 24px; margin: 20px 0;">
+      <h3 style="margin: 0 0 12px; color: #d97706; font-size: 18px;">🔄 既に導入済みでエラーが出ている方はこちら</h3>
+      <p style="margin: 0 0 16px; line-height: 1.7;">
+        ツールが最近アップデートされました。<b>Parser.gs と Diagnostics.gs を最新版に貼り替えれば直ります</b>。<br>
+        下のボタンを押す → GASで該当ファイルを開く → 全部消して貼り付け → 保存。これだけ。
+      </p>
+
+      <div style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px; flex-wrap: wrap;">
+          <span style="background: #ff9800; color: white; padding: 4px 10px; border-radius: 50%; font-weight: bold;">1</span>
+          <button onclick="copyLatestFile('Parser.gs', this)" style="background: #ff9800; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 6px rgba(255,152,0,0.4);">
+            📋 Parser.gs（最新版）をコピー
+          </button>
+          <span style="font-size: 13px; color: #555;">→ GASで <code>Parser.gs</code> を開いて全部消して貼り付け → 保存（💾）</span>
+        </div>
+        <div style="font-size: 12px; color: #888; padding-left: 38px;">
+          直った内容: <b>field-driven 統一パーサーへ刷新</b>。ホッペ/楽天/minimo/EPARK の3形式（salonboard <code>■field\n　value</code> / 楽天直送 <code>【field】 value</code> / コロン <code>field: value</code>）すべてを1エンジンで吸収。undefined耐性も組み込み済み。
+        </div>
+      </div>
+
+      <div style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px; flex-wrap: wrap;">
+          <span style="background: #ff9800; color: white; padding: 4px 10px; border-radius: 50%; font-weight: bold;">2</span>
+          <button onclick="copyLatestFile('Diagnostics.gs', this)" style="background: #ff9800; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 6px rgba(255,152,0,0.4);">
+            📋 Diagnostics.gs（最新版）をコピー
+          </button>
+          <span style="font-size: 13px; color: #555;">→ GASで <code>Diagnostics.gs</code> を開いて全部消して貼り付け → 保存（💾）</span>
+        </div>
+        <div style="font-size: 12px; color: #888; padding-left: 38px;">
+          追加内容: <code>fixAndDiagnose</code>（カレンダー作成 + 4サイト診断を一発で実行） + <code>diagnoseRecentEmails</code>（実メールを直接パーサー通して結果ログ表示）
+        </div>
+      </div>
+
+      <div style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px; flex-wrap: wrap;">
+          <span style="background: #ff9800; color: white; padding: 4px 10px; border-radius: 50%; font-weight: bold;">3</span>
+          <button onclick="copyLatestFile('Line.gs', this)" style="background: #ff9800; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 6px rgba(255,152,0,0.4);">
+            📋 Line.gs（最新版）をコピー
+          </button>
+          <span style="font-size: 13px; color: #555;">→ GASで <code>Line.gs</code> を開いて全部消して貼り付け → 保存（💾）</span>
+        </div>
+        <div style="font-size: 12px; color: #888; padding-left: 38px;">
+          追加内容: 日時取得失敗時に LINE通知に「⚠️ 日時の自動取得に失敗（カレンダー登録スキップ）」と明示する仕様
+        </div>
+      </div>
+
+      <div style="background: #fff3e0; padding: 14px; border-radius: 8px; font-size: 13px; line-height: 1.8;">
+        <b>4</b>　3ファイル貼り直したら、下のテスト①〜③に進む（特に<b>テスト③ fixAndDiagnose</b> が最重要）
+      </div>
+    </div>
+
+    <a href="https://script.google.com/" target="_blank" rel="noopener" class="btn btn-link">🔗 Google Apps Script を開く</a>
+
+    <div class="alert alert-warn">
+      <b>⚠️ 重要：これから出てくる testLine / testCalendar などは「関数」です。「ファイル」ではありません。</b><br>
+      新しくファイルを作る必要は<b>ない</b>。STEP 9 で貼り付けた <code>Main.gs</code> の中に <b>既に書かれている</b> 関数を、画面上のドロップダウンから選んで実行するだけ。
+    </div>
+
+    <h3 style="margin: 16px 0 8px; color: #c44569;">📍 GAS エディタ画面の見方</h3>
+    <div style="border: 2px solid #ccc; border-radius: 8px; overflow: hidden; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; margin: 12px 0; background: white;">
+      <div style="background: #f1f3f4; padding: 10px 12px; border-bottom: 1px solid #ccc; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <span style="background: #fff; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px;">💾 保存</span>
+        <span style="background: #1a73e8; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold;">▶ 実行</span>
+        <span style="background: #fff; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px;">🐞 デバッグ</span>
+        <span style="background: #ffeb3b; padding: 4px 10px; border-radius: 4px; border: 2px solid #f57c00; font-weight: bold;">testLine ▼</span>
+        <span style="color: #c44569; font-weight: bold;">← ★ここで関数を選ぶ★</span>
+      </div>
+      <div style="display: flex; min-height: 180px;">
+        <div style="background: #fff; padding: 12px; min-width: 180px; border-right: 1px solid #eee;">
+          <div style="font-weight: bold; font-size: 11px; color: #888; margin-bottom: 8px;">📁 ファイル一覧（左サイドバー）</div>
+          <div style="margin: 4px 0; padding: 2px 4px;">📄 Config.gs</div>
+          <div style="margin: 4px 0; padding: 2px 4px;">📄 Parser.gs</div>
+          <div style="margin: 4px 0; padding: 2px 4px;">📄 Line.gs</div>
+          <div style="margin: 4px 0; padding: 2px 4px;">📄 Calendar.gs</div>
+          <div style="margin: 4px 0; padding: 4px; background: #ffeb3b; border: 2px solid #f57c00; border-radius: 4px; font-weight: bold;">📄 Main.gs ★</div>
+          <div style="font-size: 10px; color: #c44569; margin-top: 4px; font-weight: bold;">testLine などの<br>関数はこの中に<br>定義されてる</div>
+        </div>
+        <div style="background: #fafafa; padding: 12px; flex: 1;">
+          <div style="color: #999; font-size: 11px;">// Main.gs / Diagnostics.gs に定義された関数</div>
+          <div style="color: #555; margin: 4px 0;">function main() { ... }</div>
+          <div style="background: #ffeb3b; padding: 2px 6px; margin: 4px 0; border-radius: 3px; font-weight: bold;">function testLine() { ... } ← Main.gs</div>
+          <div style="background: #fff3cd; padding: 2px 6px; margin: 4px 0; border-radius: 3px;">function installTriggers() { ... } ← Main.gs</div>
+          <div style="background: #d4f4d4; padding: 2px 6px; margin: 4px 0; border-radius: 3px; font-weight: bold; border: 2px solid #34c759;">function fixAndDiagnose() { ... } ← Diagnostics.gs ★最重要</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-tip">
+      <b>3ステップで実行</b>:<br>
+      ① 左サイドバーで <b>Main.gs</b> をクリック<br>
+      ② 上部ツールバーの <b>「関数を選択 ▼」</b>（▶実行ボタンの右隣）をクリック → リストから <b>testLine</b> を選択<br>
+      ③ <b>「▶ 実行」</b>ボタンをクリック<br><br>
+
+      <b>関数のリストに出てこない場合</b>: Main.gs を貼り付けた後に <b>Ctrl+S（💾アイコン）で保存</b>していますか？保存しないとドロップダウンに反映されません。
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">1</div>
+      <h3>テスト①: testLine（LINE通知テスト）</h3>
+      <p>GASエディタ上部の関数選択ドロップダウンで <b>testLine</b> を選んで「実行」</p>
+
+      <div class="alert alert-warn">
+        初回のみ <b>権限承認画面</b> が出ます:<br>
+        ① 「権限を確認」<br>
+        ② 「詳細」（小さく書いてある）<br>
+        ③ 「(プロジェクト名) に移動」<br>
+        ④ Googleアカウントを選択<br>
+        ⑤ 「許可」をクリック
+      </div>
+
+      <div class="talk">
+        <div class="talk-text">
+          「初回だけGoogleの確認画面が出ます。<br>
+           『このプログラムにメールやカレンダーへのアクセスを許可しますか？』という確認です。<br>
+           このプログラムはお客様のアカウント内だけで動くものなので、安心してお進めください」
+        </div>
+      </div>
+
+      <div class="checklist">
+        <label><input type="checkbox" data-key="step9-1"><span>権限承認した</span></label>
+        <label><input type="checkbox" data-key="step9-2"><span>スタッフのLINEグループに「✅ 新規予約 / テスト太郎 様」の通知が届いた</span></label>
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">2</div>
+      <h3>テスト②: installTriggers（自動実行ON）</h3>
+      <p>関数選択 → <b>installTriggers</b> → 「実行」</p>
+      <p>実行ログ（表示 → 実行ログ）に「トリガー設定完了（1分おきメイン + 月曜9時の週次ヘルスチェック）」と出ればOK。</p>
+      <div class="alert alert-tip">
+        週次ヘルスチェック：毎週月曜朝9時に「過去7日に何件処理したか」のサマリーがLINEに届きます。<br>
+        「動いてるかどうか分からなくて不安」を解消するための機能。すぐ動作確認したい場合は <b>testHealthCheck</b> を関数選択して実行すれば即時送信できます。
+      </div>
+      <div class="checklist">
+        <label><input type="checkbox" data-key="step9-4"><span>installTriggersが正常に実行された（ログ確認）</span></label>
+        <label><input type="checkbox" data-key="step9-5"><span>(任意) testHealthCheckを実行して、LINEにヘルスチェック通知が届くことを確認した</span></label>
+      </div>
+    </div>
+
+    <div class="card numbered" style="border-color: #34c759; background: linear-gradient(135deg, #f0fff4, #fff); border-width: 3px;">
+      <div class="card-num" style="background: #34c759;">3</div>
+      <h3>テスト③: fixAndDiagnose（4サイト一括検証・最重要）</h3>
+      <p style="font-size: 14px;">これ1発で「4サイト分のカレンダー作成」+「4サイト分のテスト予約をLINE通知＋カレンダー登録」を全部やります。<b>新規導入時は必ずこれを実行</b>してください。</p>
+
+      <h4 style="margin: 20px 0 10px; color: #15803d;">📍 実行手順（GASエディタ画面）</h4>
+
+      <div style="border: 2px solid #34c759; border-radius: 8px; overflow: hidden; background: white; margin: 12px 0;">
+        <div style="background: #f8fff9; padding: 14px 16px; border-bottom: 1px solid #d1fadf;">
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-family: 'SF Mono', Menlo, monospace; font-size: 12px;">
+            <span style="background: #fff; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;">💾 保存</span>
+            <span style="background: #1a73e8; color: white; padding: 6px 14px; border-radius: 4px; font-weight: bold;">▶ 実行</span>
+            <span style="background: #fff; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;">🐞</span>
+            <span style="background: #ffeb3b; padding: 6px 14px; border-radius: 4px; border: 3px solid #d97706; font-weight: bold; font-size: 13px;">fixAndDiagnose ▼</span>
+            <span style="color: #d97706; font-weight: bold; font-size: 13px;">← ★ここを fixAndDiagnose に変える★</span>
+          </div>
+          <div style="font-size: 11px; color: #666; margin-top: 8px;">↑ GASエディタの一番上のツールバー（タブの下）</div>
+        </div>
+        <div style="padding: 16px; background: #fafafa; font-size: 13px; line-height: 1.9;">
+          <b>3ステップで完了:</b><br>
+          <b>1️⃣</b> 左サイドバーから <code style="background: #fff; padding: 2px 6px; border: 1px solid #ddd; border-radius: 3px;">Diagnostics.gs</code> をクリック<br>
+          <b>2️⃣</b> 上部ツールバーの <code style="background: #ffeb3b; padding: 2px 6px; border-radius: 3px; font-weight: bold;">関数を選択 ▼</code>（▶ボタンの右隣）をクリック → リストから <code style="background: #ffeb3b; padding: 2px 6px; border-radius: 3px; font-weight: bold;">fixAndDiagnose</code> を選択<br>
+          <b>3️⃣</b> 青い <code style="background: #1a73e8; color: white; padding: 2px 8px; border-radius: 3px; font-weight: bold;">▶ 実行</code> ボタンをクリック → 30秒くらい待つ
+        </div>
+      </div>
+
+      <div class="alert alert-warn">
+        <b>関数のリストに <code>fixAndDiagnose</code> が出てこない場合</b>:<br>
+        Diagnostics.gs が古い版の可能性。STEP 9 に戻って <code>Diagnostics.gs</code> タブの「📋コピー」を押して、GASの Diagnostics.gs に貼り直してから保存してください（保存忘れずに）。
+      </div>
+
+      <h4 style="margin: 24px 0 10px; color: #15803d;">✅ 実行後に確認する3点</h4>
+
+      <div style="background: white; padding: 18px; border-radius: 8px; margin: 8px 0; border: 2px solid #34c759;">
+        <div style="font-weight: bold; color: #15803d; margin-bottom: 10px;">① LINE に4種類の通知が届く</div>
+        <code style="font-size: 12px; line-height: 2; display: block; background: #f0fff4; padding: 12px; border-radius: 6px;">
+        ✅ 新規予約 [ホッペ] / 診断 太郎 様<br>
+        ✅ 新規予約 [楽天] / 診断 花子 様<br>
+        ✅ 新規予約 [minimo] / 診断 美咲 様<br>
+        ✅ 新規予約 [EPARK] / 診断 さくら 様
+        </code>
+      </div>
+
+      <div style="background: white; padding: 18px; border-radius: 8px; margin: 8px 0; border: 2px solid #34c759;">
+        <div style="font-weight: bold; color: #15803d; margin-bottom: 10px;">② Googleカレンダー 5/10(日) に4イベント登録される</div>
+        <a href="https://calendar.google.com/" target="_blank" rel="noopener" class="btn btn-link" style="margin-bottom: 10px;">🔗 Googleカレンダーを開く</a>
+        <div style="font-size: 13px; line-height: 2; padding: 8px;">
+        ・11:00 [ホッペ] 診断 太郎 様 — 🔴 ホッペカレンダー<br>
+        ・13:00 [楽天] 診断 花子 様 — 🌸 楽天カレンダー<br>
+        ・15:00 [minimo] 診断 美咲 様 — 🟢 minimoカレンダー<br>
+        ・17:00 [EPARK] 診断 さくら 様 — 🔵 EPARKカレンダー
+        </div>
+        <div style="font-size: 12px; color: #666; padding: 8px; background: #fafafa; border-radius: 4px; margin-top: 8px;">
+          見えない時は Google Calendar 左サイドの「マイカレンダー」で4つのカレンダー（ホッペ予約・楽天予約・minimo予約・EPARK予約）の<b>カラーチェックボックスがON</b>になっているか確認。
+        </div>
+      </div>
+
+      <div style="background: white; padding: 18px; border-radius: 8px; margin: 8px 0; border: 2px solid #34c759;">
+        <div style="font-weight: bold; color: #15803d; margin-bottom: 10px;">③ GAS実行ログ末尾に「診断結果サマリ」が出る（全部 ✅ なら完了）</div>
+        <div style="font-size: 12px; color: #666; margin-bottom: 8px;">確認方法: GASエディタ下部の「実行ログ」タブをクリック。下記のような表が末尾に出る ↓</div>
+        <pre style="background: #1a1a1a; color: #0f0; padding: 12px; border-radius: 6px; font-size: 11px; overflow-x: auto; margin-top: 8px;">
+site       parse  LINE  Calendar  CalendarID
+hotpepper  ✅     ✅    ✅        xxx@group.calendar.google.com
+rakuten    ✅     ✅    ✅        xxx@group.calendar.google.com
+minimo     ✅     ✅    ✅        xxx@group.calendar.google.com
+epark      ✅     ✅    ✅        xxx@group.calendar.google.com</pre>
+      </div>
+
+      <div class="alert alert-warn">
+        <b>❌ がある行があったら</b>:<br>
+        ・<b>parse ❌</b> → Parser.gs の貼り付けミス（STEP 9 から再貼り付け）<br>
+        ・<b>LINE ❌</b> → LINE_TOKEN / LINE_TO_IDS の設定漏れ（STEP 4 / STEP 7 を見直し）<br>
+        ・<b>Calendar ❌</b> → カレンダー権限未承認の可能性。fixAndDiagnoseをもう1回実行<br>
+        その他不明なら本社サポートに「実行ログ」のスクショ送付
+      </div>
+
+      <div class="checklist">
+        <label><input type="checkbox" data-key="step11-fix-1"><span>fixAndDiagnose を実行した</span></label>
+        <label><input type="checkbox" data-key="step11-fix-2"><span>LINE に [ホッペ][楽天][minimo][EPARK] の4種類通知が届いた</span></label>
+        <label><input type="checkbox" data-key="step11-fix-3"><span>Googleカレンダー 5/10(日) に4イベントが見える</span></label>
+        <label><input type="checkbox" data-key="step11-fix-4"><span>実行ログのサマリが全部 ✅ になっている</span></label>
+      </div>
+
+      <div class="alert alert-tip">
+        <b>テスト後の掃除（任意）</b>: 5/10(日)のテストイベント4件は手動で削除してOK。放置でもサロン業務に支障なし（自動登録の説明文が入っているのですぐ識別できる）。
+      </div>
+    </div>
+
+    <div class="card numbered" style="border-color: #6366f1; background: linear-gradient(135deg, #f0f4ff, #fff); border-width: 2px;">
+      <div class="card-num" style="background: #6366f1;">4</div>
+      <h3>テスト④（任意）: diagnoseRecentEmails — 実メール診断</h3>
+      <p style="font-size: 14px;">
+        Gmail に実際に届いた最近の予約メール（過去3日・最大5件）を直接パーサーに通して、<b>何が取れて何が取れなかったか</b>を実行ログに表示します。
+      </p>
+      <p style="font-size: 13px; color: #555;">
+        本番運用後に「メール来てるのにLINE/カレンダーに反映されない」と感じた時に使う診断ツール。<br>
+        新規導入時は実メールがまだないかもしれないので、<b>このSTEPはスキップしてOK</b>。本番稼働後に必要時に実行。
+      </p>
+      <div class="alert alert-tip">
+        実行手順: 関数選択 → <code>diagnoseRecentEmails</code> → ▶ 実行 → 「実行ログ」タブで結果確認<br>
+        どこかに ⚠️取得失敗 が出ていたらそのスクショを本社サポートへ送付（→ メール形式に合わせて Parser.gs を更新）
+      </div>
+    </div>
+
+    <div class="alert alert-error">
+      <b>テストが失敗したら:</b> サイドバー下の「困ったら」を見るか、本社サポートに連絡。
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+      <button class="btn btn-primary" onclick="goNext()">次へ：本番テスト →</button>
+    </div>
+  `,
+
+  // STEP 12: 本番テスト
+  () => `
+    <h2>🎯 本番テスト（実物の予約メールで確認）</h2>
+    <div class="step-meta">
+      <span>⏱ 所要 10〜15分</span>
+      <span>📍 ホットペッパー / GAS / LINE</span>
+    </div>
+    <div class="lead">testLine / testCalendar はダミーデータでの動作確認。<b>このSTEPでは実物のホットペッパー予約メールから正しく内容が抽出されるかを検証</b>します。1社目のお客様にデモする前に必ず通すべき関門。</div>
+
+    <div class="alert alert-warn">
+      <b>このステップで検証する項目</b>:<br>
+      ✓ 実物のホットペッパー予約メールがGmailに届く<br>
+      ✓ パーサーが <b>お客様名・日時・メニュー・担当・電話・予約番号</b> を正しく抽出する<br>
+      ✓ LINE通知内容が想定通り<br>
+      ✓ Googleカレンダーに正しく登録される
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">1</div>
+      <h3>ホットペッパーでテスト予約を1件入れる</h3>
+      <p>ご自身（またはサロンオーナー）のお名前で、明日以降の日時で1件予約を入れる。<br>1分以内にホットペッパー → サロンボード経由で予約通知メールがGmailに届くはず。</p>
+      <a href="https://beauty.hotpepper.jp/" target="_blank" rel="noopener" class="btn btn-link">🔗 ホットペッパービューティーを開く</a>
+      <div class="alert alert-tip">予約後すぐにキャンセルしてOK（キャンセル通知メールでもパーサー検証になる）。</div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">2</div>
+      <h3>Gmail で予約メールが届いたか確認</h3>
+      <p>STEP 1 で記録したGmail${state.gmailAddress ? '（<code>' + state.gmailAddress + '</code>）' : ''} を開いて、ホットペッパー / サロンボードから予約通知メールが届いていることを確認。</p>
+      <a href="https://mail.google.com/" target="_blank" rel="noopener" class="btn btn-link">🔗 Gmail を開く</a>
+      <div class="alert alert-warn">
+        メールが届かない場合は STEP 1（サロンボード通知先）/ STEP 2（送信元アドレス）の設定を見直してください。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">3</div>
+      <h3>★検証メイン：testParseAndNotifyLatest を実行</h3>
+      <p>GASエディタの関数選択ドロップダウンから <b>testParseAndNotifyLatest</b> を選んで「▶実行」。</p>
+      <div class="alert alert-tip">
+        この関数は：<br>
+        ① 直近の予約メール1通をパース<br>
+        ② <b>パース結果サマリー</b>（各項目が取れているか一目で分かる）をLINEに送信<br>
+        ③ 続けて <b>実際の通知形式</b> もLINEに送信<br><br>
+        パース失敗した項目には「⚠️ 取得失敗」と出るので、どこを直せばいいか即座に判別可能。<br>
+        Gmailラベルは付与しないので、何度でも実行できる。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">4</div>
+      <h3>LINEで結果サマリーを確認</h3>
+      <p>LINEに2通の通知が来るはず。1通目（パース結果サマリー）の各項目をチェック：</p>
+      <div class="checklist">
+        <label><input type="checkbox" data-key="step10-parse-1"><span>お客様名 が正しく取れている</span></label>
+        <label><input type="checkbox" data-key="step10-parse-2"><span>日時 が正しく取れている</span></label>
+        <label><input type="checkbox" data-key="step10-parse-3"><span>メニュー が正しく取れている</span></label>
+        <label><input type="checkbox" data-key="step10-parse-4"><span>担当 が正しく取れている</span></label>
+        <label><input type="checkbox" data-key="step10-parse-5"><span>電話 が正しく取れている</span></label>
+        <label><input type="checkbox" data-key="step10-parse-6"><span>予約番号 が正しく取れている</span></label>
+        <label><input type="checkbox" data-key="step10-parse-7"><span>区分（新規/変更/キャンセル）が正しい</span></label>
+      </div>
+      <div class="alert alert-warn">
+        ⚠️ 取得失敗 が1つでもある場合：実物のメール本文を本社（開発側）に共有 → Parser.gs の正規表現を調整して再配布。これは契約期間中の <b>無償サポート対応</b>。
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">5</div>
+      <h3>1〜2分待ってトリガー自動実行も確認</h3>
+      <p>1分おきトリガー（installTriggers で設定済み）が自動で動く。新しい予約メールが入っていれば、自動でLINE通知＋カレンダー登録されるはず。</p>
+      <a href="https://calendar.google.com/" target="_blank" rel="noopener" class="btn btn-link">🔗 Googleカレンダーを開く</a>
+      <div class="checklist">
+        <label><input type="checkbox" data-key="step10-1"><span>スタッフLINEに本物の予約通知が自動で届いた</span></label>
+        <label><input type="checkbox" data-key="step10-2"><span>Googleカレンダーに予約イベントが自動登録された</span></label>
+        <label><input type="checkbox" data-key="step10-3"><span>イベントタイトル「【予約】お客様名 様 / メニュー」が正しい</span></label>
+      </div>
+    </div>
+
+    <div class="card numbered">
+      <div class="card-num">6</div>
+      <h3>(任意) キャンセル通知でも試す</h3>
+      <p>余裕があれば、テスト予約をキャンセル → キャンセル通知メールでも検証。<br>「❌ 予約キャンセル」表記のLINE通知が届き、Googleカレンダーから該当イベントが削除されればOK。</p>
+      <div class="checklist">
+        <label><input type="checkbox" data-key="step10-cancel-1"><span>(任意) キャンセル通知LINEが届いた</span></label>
+        <label><input type="checkbox" data-key="step10-cancel-2"><span>(任意) カレンダーイベントが削除された</span></label>
+      </div>
+    </div>
+
+    <div class="alert alert-tip">
+      <b>1社目のお客様デモではこのSTEPがクライマックス</b>。お客様の実物の予約メールでパーサーが完璧に動くことを目の前で示すと、契約決定率が大きく上がる。
+    </div>
+
+    <div class="alert alert-error">
+      <b>もし全く動かない場合のチェック順序</b>:<br>
+      ① Gmail に予約メールが届いているか<br>
+      ② STEP 2 で入力した送信元アドレスが、実物メールの from と一致しているか<br>
+      ③ <code>testParseLatest</code> を実行 → ログ（表示 → 実行ログ）でパース結果のJSONを確認<br>
+      ④ <code>installTriggers</code> を再実行<br>
+      ⑤ それでもダメなら本社サポートに、メール本文（個人情報マスク済み）を添えて連絡
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+      <button class="btn btn-primary" onclick="goNext()">完了 →</button>
+    </div>
+  `,
+
+  // STEP 13: 完了
+  () => `
+    <div class="celebration">
+      <div class="emoji">🎉</div>
+      <h2>セットアップ完了！</h2>
+      <p>${state.salonName ? state.salonName + ' 様の' : ''}ホットペッパー予約通知ツールが稼働開始しました。</p>
+    </div>
+
+    <div class="card">
+      <h3>📋 お客様にお伝えすること</h3>
+      <div class="talk">
+        <div class="talk-text">
+          「設定はすべて完了しました。<br>
+           明日以降、ホットペッパーで予約が入ると、<b>自動でこのLINEグループに通知が届きます</b>。<br>
+           お客様は<b>何もする必要はありません</b>。<br><br>
+
+           何かあれば、本社の公式LINEにメッセージください。<br>
+           平日10時〜18時で、1時間以内に返信します。<br><br>
+
+           料金は<b>初月無料</b>、来月からカードから自動引き落としです。<br><br>
+
+           1週間後に、ちゃんと動いているか念のため連絡しますね。<br>
+           本日はありがとうございました！」
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📤 退店後にやること</h3>
+      <div class="checklist">
+        <label><input type="checkbox" data-key="step11-1"><span>顧客台帳のステータスを「本番稼働中」に更新</span></label>
+        <label><input type="checkbox" data-key="step11-2"><span>1週間後フォローのリマインダーを設定</span></label>
+        <label><input type="checkbox" data-key="step11-3"><span>本社に完了報告フォームを送信</span></label>
+        <label><input type="checkbox" data-key="step11-4"><span>このウィザードの入力内容をリセット（次のお客様用）</span></label>
+        <label><input type="checkbox" data-key="step11-5"><span>ブラウザの履歴をクリア（セキュリティのため）</span></label>
+      </div>
+    </div>
+
+    <div class="card" style="border:2px solid #d4af37; background:linear-gradient(135deg, #fffdf5, #fff);">
+      <h3>⭐ 上級オプション：サイト別カレンダー（推奨）</h3>
+      <p style="font-size:13px; color:#555; line-height:1.8;">
+        サロンが <b>ホットペッパー以外（楽天ビューティー / minimo / EPARK Beauty）</b> も使っている場合、サイトごとに別々のGoogleカレンダーを作成できます。<br>
+        Googleカレンダーの左サイドのチェックボックスで「ホッペだけ表示」「全部表示」をワンクリックで切替えられるようになります。
+      </p>
+
+      <div class="alert alert-tip" style="margin-top:12px;">
+        <b>設定方法（30秒）</b>:<br>
+        ① GASエディタで関数選択ドロップダウンから <code>setupSiteCalendars</code> を選ぶ<br>
+        ② 「実行」ボタンをクリック<br>
+        ③ 完了！ Googleカレンダー（<a href="https://calendar.google.com/" target="_blank">calendar.google.com</a>）を開くと、4つのカレンダーが作成されているはず：
+      </div>
+
+      <ul style="margin-left:24px; font-size:13px; line-height:2;">
+        <li>🔴 ホットペッパー予約 - ${state.salonName || 'サロン名'}</li>
+        <li>🌸 楽天ビューティー予約 - ${state.salonName || 'サロン名'}</li>
+        <li>🟢 minimo予約 - ${state.salonName || 'サロン名'}</li>
+        <li>🔵 EPARK Beauty予約 - ${state.salonName || 'サロン名'}</li>
+      </ul>
+
+      <p style="font-size:12px; color:#888; margin-top:10px;">
+        💡 設定不要なサイトのカレンダーは Googleカレンダー上で削除してOK（影響なし）。<br>
+        💡 後から追加・削除も自由。何度でも <code>setupSiteCalendars()</code> 実行可（既存はそのまま、未作成のみ新規作成）。
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>📊 セットアップサマリー</h3>
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:8px 4px; font-weight:bold;">サロン</td>
+          <td>${state.salonName || '(未入力)'}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:8px 4px; font-weight:bold;">担当</td>
+          <td>${state.installerName || '(未入力)'}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:8px 4px; font-weight:bold;">完了日時</td>
+          <td>${new Date().toLocaleString('ja-JP')}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="goPrev()">← 戻る</button>
+      <button class="btn btn-primary btn-large" onclick="resetAll()">🔄 次のお客様用にリセット</button>
+    </div>
+  `,
+];
+
+// =============================================
+// レンダリング
+// =============================================
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function render() {
+  const html = STEPS[state.currentStep]();
+  document.getElementById('step-container').innerHTML = `<div class="step-content">${html}</div>`;
+  // チェックボックス状態を復元＆保存
+  document.querySelectorAll('input[type=checkbox][data-key]').forEach(cb => {
+    cb.checked = state.done[cb.dataset.key] || false;
+    cb.addEventListener('change', () => {
+      state.done[cb.dataset.key] = cb.checked;
+      save();
+    });
+  });
+
+  // 入力フィールドの保存
+  ['input-token', 'input-groupid', 'input-salon', 'input-installer', 'input-gmail', 'input-from-address'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      if (id === 'input-token') {
+        state.lineToken = el.value.trim();
+        validateToken();
+      } else if (id === 'input-groupid') {
+        state.groupId = el.value.trim();
+        validateGroupId();
+      } else if (id === 'input-salon') state.salonName = el.value;
+      else if (id === 'input-installer') state.installerName = el.value;
+      else if (id === 'input-gmail') state.gmailAddress = el.value.trim();
+      else if (id === 'input-from-address') state.fromAddress = el.value.trim();
+      save();
+    });
+  });
+
+  // STEP 2: 独立した4入力欄でのサイト送信元設定
+  const siteRowCheckboxes = document.querySelectorAll('.site-row input[type=checkbox][data-site]');
+  if (siteRowCheckboxes.length > 0) {
+    const siteInputs = document.querySelectorAll('.site-row .site-input[data-site-input]');
+    const previewEl = document.getElementById('preview-combined');
+
+    const updatePreview = () => {
+      const parts = [];
+      siteRowCheckboxes.forEach(cb => {
+        if (!cb.checked) return;
+        const site = cb.dataset.site;
+        const inp = document.querySelector('.site-input[data-site-input="' + site + '"]');
+        if (inp && inp.value.trim()) parts.push(inp.value.trim());
+      });
+      const combined = parts.join(' ').trim();
+      if (previewEl) {
+        previewEl.textContent = combined || '(チェックされたサイトがありません)';
+      }
+      // siteAddrs を state に保存（編集値を記憶）
+      state.siteAddrs = {};
+      siteInputs.forEach(inp => {
+        state.siteAddrs[inp.dataset.siteInput] = inp.value;
+      });
+      save();
+    };
+
+    siteRowCheckboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        const row = cb.closest('.site-row');
+        if (row) row.classList.toggle('checked', cb.checked);
+        updatePreview();
+      });
+    });
+
+    siteInputs.forEach(inp => {
+      inp.addEventListener('input', () => {
+        inp.classList.add('flash');
+        setTimeout(() => inp.classList.remove('flash'), 400);
+        updatePreview();
+      });
+    });
+
+    // 初期表示時にプレビュー更新
+    updatePreview();
+  }
+
+  validateToken();
+  validateGroupId();
+  updateSidebar();
+}
+
+function validateToken() {
+  const el = document.getElementById('input-token');
+  const hint = document.getElementById('token-hint');
+  if (!el) return;
+  if (!el.value) { el.className = ''; if (hint) hint.className='input-hint'; return; }
+  if (el.value.length < 30) {
+    el.className = 'invalid';
+    if (hint) { hint.textContent = '⚠️ トークンが短すぎます。コピー漏れの可能性'; hint.className='input-hint error'; }
+  } else {
+    el.className = 'valid';
+    if (hint) { hint.textContent = '✓ トークンが入力されました ('+el.value.length+'文字)'; hint.className='input-hint'; }
+  }
+}
+
+function validateGroupId() {
+  const el = document.getElementById('input-groupid');
+  const hint = document.getElementById('groupid-hint');
+  if (!el) return;
+  if (!el.value) { el.className = ''; if (hint) hint.className='input-hint'; return; }
+  if (!/^[CU][a-f0-9]{20,}$/i.test(el.value)) {
+    el.className = 'invalid';
+    if (hint) { hint.textContent = '⚠️ 形式が違う可能性。C(グループ)またはU(個人)で始まる長い文字列のはずです'; hint.className='input-hint error'; }
+  } else {
+    el.className = 'valid';
+    const kind = el.value.startsWith('C') ? 'グループID' : '個人ユーザーID';
+    if (hint) { hint.textContent = '✓ ' + kind + 'が正しく入力されました'; hint.className='input-hint'; }
+  }
+}
+
+function updateSidebar() {
+  const total = STEPS.length;
+  const pct = (state.currentStep / (total - 1)) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  document.querySelectorAll('#step-list li').forEach(li => {
+    const step = Number(li.dataset.step);
+    li.classList.toggle('active', step === state.currentStep);
+    li.classList.toggle('done', step < state.currentStep);
+    li.onclick = () => { state.currentStep = step; save(); render(); window.scrollTo(0,0); };
+  });
+}
+
+function goNext() {
+  if (state.currentStep < STEPS.length - 1) {
+    state.currentStep++;
+    save();
+    render();
+    window.scrollTo(0,0);
+  }
+}
+
+// STEP 2 専用: サイト別入力をまとめて state.fromAddress に保存してから次へ
+function commitSiteAddrsAndNext() {
+  const checkboxes = document.querySelectorAll('.site-row input[type=checkbox][data-site]');
+  const parts = [];
+  state.siteAddrs = state.siteAddrs || {};
+  checkboxes.forEach(cb => {
+    const site = cb.dataset.site;
+    const inp = document.querySelector('.site-input[data-site-input="' + site + '"]');
+    if (inp) state.siteAddrs[site] = inp.value;
+    if (cb.checked && inp && inp.value.trim()) parts.push(inp.value.trim());
+  });
+  state.fromAddress = parts.join(' ').trim();
+  save();
+  goNext();
+}
+
+function goPrev() {
+  if (state.currentStep > 0) {
+    state.currentStep--;
+    save();
+    render();
+    window.scrollTo(0,0);
+  }
+}
+
+function showFile(name) {
+  document.querySelectorAll('#file-tabs button').forEach(b => b.classList.toggle('active', b.dataset.file === name));
+  ['Config.gs','Parser.gs','Line.gs','Calendar.gs','Main.gs','Diagnostics.gs'].forEach(n => {
+    const el = document.getElementById('file-' + n);
+    if (el) el.classList.toggle('hidden', n !== name);
+  });
+}
+
+function copyCode(elementId, btn) {
+  const text = document.getElementById(elementId).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ コピー完了';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = orig;
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(err => {
+    alert('コピーに失敗しました。手動で選択してコピーしてください');
+  });
+}
+
+// アップデート用: GAS_FILES から直接生成したコードをクリップボードへ
+function copyLatestFile(fileName, btn) {
+  const code = GAS_FILES[fileName](state.lineToken, state.groupId, state.fromAddress, state.contractPlan);
+  navigator.clipboard.writeText(code).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ コピーした！次はGASで貼り付け';
+    btn.style.background = '#15803d';
+    setTimeout(() => {
+      btn.innerHTML = orig;
+      btn.style.background = '';
+    }, 3000);
+  }).catch(err => {
+    alert('コピーに失敗しました。STEP 9 の該当タブから手動でコピーしてください');
+  });
+}
+
+// =============================================
+// 起動
+// =============================================
+render();
+</script>
+
+</body>
+</html>
