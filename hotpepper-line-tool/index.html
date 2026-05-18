@@ -670,6 +670,11 @@ const CONFIG = {
   LINE_MONTHLY_QUOTA: ${quota},
   LINE_QUOTA_WARNING_RATIO: 0.75,
 
+  // Skeleton本社（ベンダー）向けアラート送信先
+  // 75%/100%到達時に裏でメール通知 → 本社が事前に気付いてプランアップを提案できる
+  // サロン側からは見えないので、サロン体験は変わらない
+  VENDOR_ALERT_EMAIL: 't3.5ty6@gmail.com',
+
   MAIN_FAILURE_THRESHOLD: 3,
 
   SALON_NAME: '',
@@ -1008,12 +1013,59 @@ function incrementQuotaCounter() {
   const key = 'lineQuota_' + ym;
   const current = Number(props.getProperty(key) || '0') + 1;
   props.setProperty(key, String(current));
-  const warnFlagKey = 'lineQuotaWarned_' + ym;
-  if (props.getProperty(warnFlagKey)) return;
+
+  // 75%警告: サロン側LINE + 本社メール（月1回まで）
   const threshold = Math.floor(CONFIG.LINE_MONTHLY_QUOTA * CONFIG.LINE_QUOTA_WARNING_RATIO);
-  if (current >= threshold) {
+  const warnFlagKey = 'lineQuotaWarned_' + ym;
+  if (current >= threshold && !props.getProperty(warnFlagKey)) {
     props.setProperty(warnFlagKey, '1');
     sendQuotaWarning(current, CONFIG.LINE_MONTHLY_QUOTA);
+    notifyVendorAlert('warning', current, CONFIG.LINE_MONTHLY_QUOTA);
+  }
+
+  // 100%到達: 本社メールのみ（LINE上限超でサロン側に送れない）
+  const exhaustedFlagKey = 'lineQuotaExhausted_' + ym;
+  if (current >= CONFIG.LINE_MONTHLY_QUOTA && !props.getProperty(exhaustedFlagKey)) {
+    props.setProperty(exhaustedFlagKey, '1');
+    notifyVendorAlert('exhausted', current, CONFIG.LINE_MONTHLY_QUOTA);
+  }
+}
+
+/**
+ * Skeleton本社（ベンダー）向けアラートメール
+ *   kind = 'warning'   ... 75%到達時
+ *   kind = 'exhausted' ... 100%到達時
+ * VENDOR_ALERT_EMAIL 未設定なら何もしない（既存案件互換）
+ */
+function notifyVendorAlert(kind, current, quota) {
+  const to = CONFIG.VENDOR_ALERT_EMAIL;
+  if (!to) return;
+  const salon = CONFIG.SALON_NAME || '(SALON_NAME未設定)';
+  const ratio = quota > 0 ? Math.round(current / quota * 100) : 0;
+  const tag = kind === 'exhausted' ? '🚨100%到達(送信停止)' : '⚠️' + ratio + '%到達';
+  const subject = '[Skeleton Alert] ' + salon + ' LINE通知 ' + tag;
+  const body = [
+    'Skeleton 客先LINE通知ツールから自動アラート',
+    '',
+    'サロン名: ' + salon,
+    '到達率: ' + ratio + '% (' + current + ' / ' + quota + '通)',
+    '月キー: ' + monthKey(),
+    '',
+    kind === 'exhausted'
+      ? '🚨 月次上限に到達。今月いっぱいLINE通知が止まる状態。'
+      : '⚠️ 月次上限の' + ratio + '%に到達。来週〜来月の予約数次第で枯渇可能性あり。',
+    '',
+    '推奨アクション:',
+    kind === 'exhausted'
+      ? '・即時プランアップグレード（Light: 月¥5,000 / 5,000通）'
+      : '・Lightプラン提案メールを客に送る',
+    '',
+    '-- Skeleton Inc. 自動巡回システム --'
+  ].join('\\n');
+  try {
+    MailApp.sendEmail(to, subject, body);
+  } catch (e) {
+    Logger.log('ベンダーアラートメール送信失敗: ' + e.message);
   }
 }
 
